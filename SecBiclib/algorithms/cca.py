@@ -173,9 +173,6 @@ class ChengChurchAlgorithm(BaseBiclusteringAlgorithm):
         residues = sub_data - row_means[:, np.newaxis] - col_means + data_mean
         squared_residues = residues * residues
 
-        print(len(rows))
-        print(squared_residues.shape)
-
         msr = np.mean(squared_residues)
         row_msr = np.mean(squared_residues, axis=1)
         col_msr = np.mean(squared_residues, axis=0)
