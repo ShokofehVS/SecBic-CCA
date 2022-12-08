@@ -1,9 +1,9 @@
 """
-    SeCCA: A Python library of privacy-preserved biclustering algorithm (Cheng and Church) with Homomorphic Encryption
+    SecBic-SeCCA: A Python library of privacy-preserving biclustering algorithm (Cheng and Church) with Homomorphic Encryption
 
     Copyright (C) 2022  Shokofeh VahidianSadegh
 
-    This file is part of SeCCA.
+    This file is part of SecBic-SeCCA.
 
 """
 
@@ -58,9 +58,8 @@ class ChengChurchAlgorithm(BaseBiclusteringAlgorithm):
 
         num_rows, num_cols = data.shape
         min_value = np.min(data)
-        # print(min_value)
         max_value = np.max(data)
-        # print(max_value)
+
         msr_thr = (((max_value - min_value) ** 2) / 12) * 0.005 if self.msr_threshold == 'estimate' else self.msr_threshold
 
         biclusters = []
@@ -152,14 +151,7 @@ class ChengChurchAlgorithm(BaseBiclusteringAlgorithm):
 
             msr, _, _ = self._calculate_msr(data, rows, cols)
             col_msr = self._calculate_msr_col_addition(data, rows, cols)
-            # print(col_msr)
-            # print(col_msr.shape)
-            # print("msr:{}".format(msr))
-            # print("col_msr:{}".format(col_msr))
             cols2add = np.where(col_msr <= 300)[0]
-            # print(np.where(col_msr <= msr)[0])
-            # print(cols2add)
-            # print(cols2add.shape)
             cols[cols2add] = True
 
             msr, _, _ = self._calculate_msr(data, rows, cols)
@@ -192,9 +184,9 @@ class ChengChurchAlgorithm(BaseBiclusteringAlgorithm):
 
     def _calculate_msr_col_addition(self, data, rows, cols):
         """Calculate the mean squared residues of the columns for the node addition step."""
-        #Rows and cols in finding sub_data and sub_data_rows are different than input
         sub_data = data[rows][:, cols]
         sub_data_rows = data[rows]
+
         data_mean = np.mean(sub_data)
         row_means = np.mean(sub_data, axis=1)
         col_means = np.mean(sub_data_rows, axis=0)
