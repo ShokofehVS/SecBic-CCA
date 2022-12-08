@@ -1,6 +1,6 @@
 import time
 from biclustlib.algorithms import SecuredChengChurchAlgorithm
-from biclustlib.algorithms import SecuredChengChurchAlgorithmType1
+# from biclustlib.algorithms import SecuredChengChurchAlgorithmType1
 from biclustlib.algorithms import SecuredChengChurchAlgorithmType2
 from biclustlib.algorithms import SecuredChengChurchAlgorithmType3
 from biclustlib.algorithms import SecuredChengChurchAlgorithmType4
@@ -18,7 +18,7 @@ missing = np.where(data < 0.0)
 data[missing] = np.random.randint(low=0, high=800, size=len(missing[0]))
 
 # creating an instance of the SecuredChengChurchAlgorithm class and running with the parameters
-secca = SecuredChengChurchAlgorithmType1(num_biclusters=5, msr_threshold=300.0, multiple_node_deletion_threshold=1.2)
+secca = SecuredChengChurchAlgorithmType2(num_biclusters=5, msr_threshold=300.0, multiple_node_deletion_threshold=1.2)
 biclustering = secca.run(data)
 # print(biclustering)
 
