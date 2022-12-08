@@ -1,19 +1,19 @@
 # SecBic-CCA
 
 **SecBic-CCA**: **Sec**ured **Bic**lusterings - **C**heng and **C**hurch **A**lgorithm: privacy-preserving gene expression data analysis by biclustering algorithm -- Cheng and Church algorithm -- over gene expression data (i.e., yeast cell cycle) with Homomorphic Encryption operations such as sum, or matrix multiplication in Python under the MIT license.
+
 We apply [Pyfhel](https://pyfhel.readthedocs.io/en/latest/) as a python wrapper for the Microsoft SEAL library. 
 
 ## Installation
 First you need to ensure that all packages have been installed.
 + See `requirements.txt`
-+ numpy>=1.22.3
-+ setuptools>=60.2.0
-+ pandas>=1.4.2
-+ scikit-learn>=1.0.2
-+ Pyfhel>=2.3.1
-+ Bottleneck>=1.3.4
++ numpy>=1.23.1
++ setuptools>=65.5.0
++ pandas>=1.5.0
++ scikit-learn>=1.1.1
++ Pyfhel>=3.3.1
 + matplotlib>=3.5.2
-+ scipy>=1.8.0
++ scipy>=1.9.0
 + munkres>=1.1.4
 
 You can clone this repository:
@@ -41,12 +41,15 @@ Our input data is *yeast Saccharomyces cerevisiae cell cycle* taken from [Tavazo
 
 ## External Evaluation Measure
 To measure the similarity of encrypted biclusters with non-encrypted version, we use Clustering Error (CE) as an external evaluation measure that was proposed by [Patrikainen and Meila (2006)](http://ieeexplore.ieee.org/abstract/document/1637417/);
-         
+
+## Project Contents
+- `SecBiclib/` software library contains algorithms, datasets, evaluation and sample scripts 
+  1. `algorithms/` original Cheng and Church algorithm and its encrypted counterpart
+  2. `datasets/` real (yeast cell cycle) and synthetic data generation 
+  3. `evaluation/` external evaluation measures including CE
+  4. `scripts` small programs to showcase functionalities of SecBic library
+
 ## Example of Cheng and Church Algorithm (CCA)
-To run the sample implementation of Cheng and Church algorithm:
-
-	   > python3 cheng_church_yeast.py 
-
 ```python
 import time
 from SecBiclib.algorithms import ChengChurchAlgorithm
@@ -71,10 +74,6 @@ m1 = time.perf_counter()
 print("Time Performance in Original Algorithm: ", round(m1 - m0, 5), "Seconds")
 ```
 ## Example of Secured Cheng and Church Algorithm (SeCCA)
-To run the sample implementation of Secured version of Cheng and Church algorithm:
-
-	   > python3 secured_cheng_church_yeast.py  
-
 ```python
 import time
 from SecBiclib.algorithms import SecuredChengChurchAlgorithm
