@@ -1,7 +1,7 @@
 import json
 import numpy as np
-
 from .models import Bicluster, Biclustering
+
 
 def save_biclusterings(b, file_path):
     """Dumps biclusterings to a file using the json module.
@@ -23,6 +23,7 @@ def save_biclusterings(b, file_path):
     with open(file_path, 'w') as f:
         json.dump(b, f, default=_biclustering_to_dict)
 
+
 def load_biclusterings(file_path):
     """Load biclusterings from a json file.
 
@@ -35,6 +36,7 @@ def load_biclusterings(file_path):
         biclusterings = json.load(f, object_hook=_dict_to_biclustering)
     return biclusterings
 
+
 def _biclustering_to_dict(bic):
     d = {'__class__' : bic.__class__.__name__, '__module__' : bic.__module__}
 
@@ -44,6 +46,7 @@ def _biclustering_to_dict(bic):
         d['biclusters'] =  [(list(map(int, b.rows)), list(map(int, b.cols))) for b in bic.biclusters]
 
     return d
+
 
 def _dict_to_biclustering(bic_dict):
     try:
