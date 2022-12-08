@@ -1,18 +1,18 @@
 """
-    SeCCA: A Python library of privacy-preserved biclustering algorithm (Cheng and Church) with Homomorphic Encryption
+    SecBic-CCA: A Python library of privacy-preserving biclustering algorithm (Cheng and Church) with Homomorphic Encryption
 
     Copyright (C) 2022  Shokofeh VahidianSadegh
 
-    This file is part of SeCCA.
+    This file is part of SecBic-CCA.
 
 """
 
 import sys
 import numpy as np
-
 from munkres import Munkres
 from itertools import product
 from .check import check_biclusterings
+
 
 def clustering_error(predicted_biclustering, reference_biclustering, num_rows, num_cols):
     """The Clustering Error (CE) external evaluation measure.
@@ -59,6 +59,7 @@ def clustering_error(predicted_biclustering, reference_biclustering, num_rows, n
 
     return float(dmax) / union_size
 
+
 def relative_non_intersecting_area(predicted_biclustering, reference_biclustering, num_rows, num_cols):
     """The Relative Non-Intersecting Area (RNIA) external evaluation measure.
 
@@ -104,6 +105,7 @@ def relative_non_intersecting_area(predicted_biclustering, reference_biclusterin
 
     return float(intersection_size) / union_size
 
+
 def _calculate_size(predicted_biclustering, reference_biclustering, num_rows, num_cols, operation):
     pred_count = _count_biclusters(predicted_biclustering, num_rows, num_cols)
     true_count = _count_biclusters(reference_biclustering, num_rows, num_cols)
@@ -117,12 +119,14 @@ def _calculate_size(predicted_biclustering, reference_biclustering, num_rows, nu
 
     raise ValueError("operation must be one of {0}, got {1}".format(valid_operations, operation))
 
+
 def _calculate_dmax(predicted_biclustering, reference_biclustering):
     pred_sets = _bic2sets(predicted_biclustering)
     true_sets = _bic2sets(reference_biclustering)
     cost_matrix = [[sys.maxsize - len(b.intersection(g)) for g in true_sets] for b in pred_sets]
     indices = Munkres().compute(cost_matrix)
     return sum(sys.maxsize - cost_matrix[i][j] for i, j in indices)
+
 
 def _count_biclusters(biclustering, num_rows, num_cols):
     count = np.zeros((num_rows, num_cols), dtype=np.int)
@@ -131,6 +135,7 @@ def _count_biclusters(biclustering, num_rows, num_cols):
         count[np.ix_(b.rows, b.cols)] += 1
 
     return count
+
 
 def _bic2sets(biclust):
     return [set(product(b.rows, b.cols)) for b in biclust.biclusters]
