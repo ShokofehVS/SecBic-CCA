@@ -1,14 +1,16 @@
-""" 
-    SeCCA: A Python library of privacy-preserved biclustering algorithm (Cheng and Church) with Homomorphic Encryption
+"""
+    SecBic-CCA: A Python library of privacy-preserving biclustering algorithm (Cheng and Church) with Homomorphic Encryption
+
     Copyright (C) 2022  Shokofeh VahidianSadegh
-    This file is part of SeCCA.
-    
+
+    This file is part of SecBic-CCA.
+
 """
 
 import numpy as np
-
 from scipy import sparse as sp
 from .check import check_biclusterings
+
 
 def csi(predicted_biclustering, reference_biclustering, num_rows, num_cols, sparse=True):
     """The Campello Soft Index (CSI) external evaluation measure.
@@ -72,6 +74,7 @@ def csi(predicted_biclustering, reference_biclustering, num_rows, num_cols, spar
 
     return float(agreements) / (agreements + disagreements)
 
+
 def _biclustering_to_soft_clustering(biclustering, num_rows, num_cols):
     is_singleton = np.ones(num_rows * num_cols, dtype=np.bool)
     soft_clustering = []
@@ -84,6 +87,7 @@ def _biclustering_to_soft_clustering(biclustering, num_rows, num_cols):
     soft_clustering.extend(i for i in np.where(is_singleton)[0])
 
     return soft_clustering
+
 
 def _calculate_association(clustering, num_rows, num_cols, sparse):
     if sparse:
@@ -98,11 +102,14 @@ def _calculate_association(clustering, num_rows, num_cols, sparse):
         return sp.csr_matrix(association)
     return association
 
+
 def _calculate_coassociation(association):
     return association.T.dot(association)
 
+
 def _calculate_beta(association):
     return association.sum(axis=0) - 1
+
 
 def _calculate_agreements(predicted_coassociation, reference_coassociation, predicted_beta, reference_beta, sparse):
     num_objects = predicted_coassociation.shape[0]
@@ -110,11 +117,13 @@ def _calculate_agreements(predicted_coassociation, reference_coassociation, pred
     min_beta = np.minimum(predicted_beta, reference_beta)
     return min_alpha.sum() + min_beta.sum() * (num_objects - 1)
 
+
 def _calculate_disagreements(predicted_coassociation, reference_coassociation, predicted_beta, reference_beta, sparse):
     num_objects = predicted_coassociation.shape[0]
     abs_alpha = abs(_triu(predicted_coassociation - reference_coassociation, sparse))
     abs_beta = abs(predicted_beta - reference_beta)
     return abs_alpha.sum() + abs_beta.sum() * (num_objects - 1)
+
 
 def _triu(a, sparse):
     if sparse:
