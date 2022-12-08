@@ -1,9 +1,9 @@
 """
-    SecBic-SeCCA: A Python library of privacy-preserving biclustering algorithm (Cheng and Church) with Homomorphic Encryption
+    SecBic-CCA: A Python library of privacy-preserving biclustering algorithm (Cheng and Church) with Homomorphic Encryption
 
     Copyright (C) 2022  Shokofeh VahidianSadegh
 
-    This file is part of SecBic-SeCCA.
+    This file is part of SecBic-CCA.
 
 """
 
@@ -15,10 +15,10 @@ import numpy as np
 import time
 
 
-class SecuredChengChurchAlgorithmType2(BaseBiclusteringAlgorithm):
-    """Secured Cheng and Church's Algorithm (Type 2)
+class SecuredChengChurchAlgorithm(BaseBiclusteringAlgorithm):
+    """Secured Cheng and Church's Algorithm
 
-    Type 2 searches for maximal submatrices with a Mean Squared Residue value below a pre-defined threshold
+     Secured Cheng and Church's Algorithm searches for maximal submatrices with a Mean Squared Residue value below a pre-defined threshold
         by Homomorphic Encryption operations
 
     Parameters
