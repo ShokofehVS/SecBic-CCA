@@ -1,12 +1,10 @@
-import numpy as np
 import time
-from SecBiclib.algorithms import ChengChurchAlgorithm
 from SecBiclib.algorithms import SecuredChengChurchAlgorithm
 from SecBiclib.datasets import synthetic
 
 m0 = time.perf_counter()
 
-# load synthetic data set
+# load constant bicluster model
 data, predicted = synthetic.make_const_data()
 
 # creating an instance of the SeCCA ChengChurchAlgorithm class and running with the parameters of the original study
