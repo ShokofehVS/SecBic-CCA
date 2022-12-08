@@ -1,9 +1,9 @@
 """
-    SeCCA: A Python library of privacy-preserved biclustering algorithm (Cheng and Church) with Homomorphic Encryption
+    SecBic-SeCCA: A Python library of privacy-preserving biclustering algorithm (Cheng and Church) with Homomorphic Encryption
 
     Copyright (C) 2022  Shokofeh VahidianSadegh
 
-    This file is part of SeCCA.
+    This file is part of SecBic-SeCCA.
 
 """
 
@@ -11,23 +11,14 @@ from ._base import BaseBiclusteringAlgorithm
 from ..models import Bicluster, Biclustering
 from sklearn.utils.validation import check_array
 from Pyfhel import Pyfhel, PyCtxt
-from scipy import stats
-
-import numpy as np
-import bottleneck as bn
-import random
-import math
-import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
 import time
-import threading
 
 
 class SecuredChengChurchAlgorithmType2(BaseBiclusteringAlgorithm):
-    """Secured Cheng and Church's Algorithm (SeCCA Type 2)
+    """Secured Cheng and Church's Algorithm (Type 2)
 
-    SeCCA searches for maximal submatrices with a Mean Squared Residue value below a pre-defined threshold
+    Type 2 searches for maximal submatrices with a Mean Squared Residue value below a pre-defined threshold
         by Homomorphic Encryption operations
 
     Parameters
@@ -61,15 +52,27 @@ class SecuredChengChurchAlgorithmType2(BaseBiclusteringAlgorithm):
         ----------
         data : numpy.ndarray
         """
-        # print("SeCCA Step 2")
+        print("Step 2")
         # Creating empty Pyfhel object
-        HE = Pyfhel()
-        # Generating context
-        # HE.contextGen(p = 1964769281, m = 8192, sec = 192, flagBatching = True, base = 2, intDigits = 64, fracDigits = 4096)
-        HE.contextGen(p = 65537, m = 4096, sec = 192, flagBatching = True, base = 2, intDigits = 16, fracDigits = 64)
+        HE = Pyfhel()  # Creating empty Pyfhel object
+        ckks_params = {
+            'scheme': 'CKKS',  # can also be 'ckks'
+            'n': 2 ** 14,  # Polynomial modulus degree. For CKKS, n/2 values can be
+            #  encoded in a single ciphertext.
+            #  Typ. 2^D for D in [10, 16]
+            'scale': 2 ** 30,  # All the encodings will use it for float->fixed point
+            #  conversion: x_fix = round(x_float * scale)
+            #  You can use this as default scale or use a different
+            #  scale on each operation (set in HE.encryptFrac)
+            'qi_sizes': [60, 30, 30, 30, 60]  # Number of bits of each prime in the chain.
+            # Intermediate values should be  close to log2(scale)
+            # for each operation, to have small rounding errors.
+        }
 
-        # Key Generation
-        HE.keyGen()
+        HE.contextGen(**ckks_params)  # Generate context for bfv scheme
+        HE.keyGen()  # Key Generation: generates a pair of public/secret keys
+        HE.rotateKeyGen()
+        HE.relinKeyGen()  # Relinearization key generation
 
         data = check_array(data, dtype=np.double, copy=True)
         self._validate_parameters()
@@ -84,11 +87,7 @@ class SecuredChengChurchAlgorithmType2(BaseBiclusteringAlgorithm):
         t_enc = []
         t_dec = []
         for i in range(self.num_biclusters):
-            with open('resultEvaluationStep2', 'a') as saveFile:
-                saveFile.write("Number of the Bicluster:{}".format(i + 1))
-                saveFile.write("\n")
-
-            # print("Number of the Bicluster:{}".format(i+1))
+            print("Number of the Bicluster:{}".format(num_rows))
             rows = np.ones(num_rows, dtype=np.bool)
             cols = np.ones(num_cols, dtype=np.bool)
 
@@ -117,7 +116,7 @@ class SecuredChengChurchAlgorithmType2(BaseBiclusteringAlgorithm):
         the original paper)"""
         msr, row_msr, col_msr = self._calculate_msr(data, rows, cols, HE, t_enc, t_dec)
 
-        while msr > msr_thr:
+        while msr.all() > msr_thr.all():
             self._single_deletion(data, rows, cols, row_msr, col_msr, HE)
             msr, row_msr, col_msr = self._calculate_msr(data, rows, cols, HE, t_enc, t_dec)
 
@@ -141,7 +140,7 @@ class SecuredChengChurchAlgorithmType2(BaseBiclusteringAlgorithm):
         the original paper)"""
         msr, row_msr, col_msr = self._calculate_msr(data, rows, cols, HE, t_enc, t_dec)
 
-        stop = True if msr <= msr_thr else False
+        stop = True if msr.all() <= msr_thr.all() else False
 
         while not stop:
             cols_old = np.copy(cols)
@@ -175,12 +174,12 @@ class SecuredChengChurchAlgorithmType2(BaseBiclusteringAlgorithm):
 
             msr, _, _ = self._calculate_msr(data, rows, cols, HE, t_enc, t_dec)
             col_msr = self._calculate_msr_col_addition(data, rows, cols)
-            cols2add = np.where(col_msr <= msr)[0]
+            cols2add = np.where(col_msr.all() <= msr.all())[0]
             cols[cols2add] = True
 
             msr, _, _ = self._calculate_msr(data, rows, cols, HE, t_enc, t_dec)
             row_msr, row_inverse_msr = self._calculate_msr_row_addition(data, rows, cols)
-            rows2add = np.where(np.logical_or(row_msr <= msr, row_inverse_msr <= msr))[0]
+            rows2add = np.where(np.logical_or(row_msr.all() <= msr.all(), row_inverse_msr.all() <= msr.all()))[0]
             rows[rows2add] = True
 
             if np.all(rows == rows_old) and np.all(cols == cols_old):
@@ -198,22 +197,27 @@ class SecuredChengChurchAlgorithmType2(BaseBiclusteringAlgorithm):
         # 4. Reshape the array
         t_enc0 = time.perf_counter()
         sub_data = data[rows][:, cols]
-        sub_data = np.ascontiguousarray(sub_data)
-        enc_sub_data = sub_data.flatten()
-        arr_sub_data = np.empty(len(enc_sub_data), dtype=PyCtxt)
-        for i in np.arange(len(enc_sub_data)):
-            arr_sub_data[i] = HE.encryptFrac(enc_sub_data[i])
-        arr_sub_data = arr_sub_data.reshape(sub_data.shape)
+        sub_data = np.ascontiguousarray(sub_data).flatten().astype(np.float64)
+        arr_sub_data = HE.encryptFrac(sub_data)
+        n_elements = len(rows) * len(cols)
+        # No reshape!
+
+        # Row-wise sum & Encrypting row_means
+        enc_rowwise_sum = PyCtxt(copy_ctxt=arr_sub_data)
+        for i in range(1, len(cols)):
+            enc_rowwise_sum += arr_sub_data << i
+
+        # Column-wise sum & Encrypting col_means
+        enc_colwise_sum = PyCtxt(copy_ctxt=arr_sub_data)
+        for i in range(1, len(rows)):
+            enc_colwise_sum += arr_sub_data << (i * len(cols))
 
         # Encrypting data_mean
-        enc_data_mean = np.sum(arr_sub_data) / len(enc_sub_data)
+        enc_data_mean = np.sum(arr_sub_data) / len(arr_sub_data)
 
-        # Encrypting row_means
-        enc_row_means = np.mean(arr_sub_data, axis=1)
-        enc_row_means = enc_row_means.reshape((sub_data.shape[0], 1))
-
-        # Encrypting col_means
-        enc_col_means = np.mean(arr_sub_data, axis=0)
+        # 1. Mean
+        enc_row_means = enc_rowwise_sum / len(cols)
+        enc_col_means = enc_colwise_sum / len(rows)
 
         # Encrypting Residues
         enc_residues = arr_sub_data - enc_row_means - enc_col_means + enc_data_mean
@@ -221,45 +225,47 @@ class SecuredChengChurchAlgorithmType2(BaseBiclusteringAlgorithm):
         # Encrypting Squared Residues
         enc_squared_residues = enc_residues ** 2
 
+        HE.relinearize(enc_squared_residues)
+        HE.rescale_to_next(enc_squared_residues)
+        enc_squared_residues = HE.encrypt(len(enc_squared_residues))
+        HE.mod_switch_to_next(enc_squared_residues)
+
         # Encrypting msr
-        enc_squared_residues_flatten = enc_squared_residues.flatten()
-        enc_msr = np.sum(enc_squared_residues) / len(enc_squared_residues_flatten)
+        enc_msr = np.sum(enc_squared_residues) / len(enc_squared_residues)
 
         # Encrypting row_msr
-        enc_row_msr = np.mean(enc_squared_residues, axis=1)
+        enc_row_msr = enc_squared_residues / len(enc_squared_residues)
 
         # Encrypting col_msr
-        enc_col_msr = np.mean(enc_squared_residues, axis=0)
+        enc_col_msr = enc_squared_residues / len(enc_squared_residues)
+
+        print("\nRescaling & Mod Switching.")
+        print("->\tMean: ", enc_data_mean)
+        print("->\tMSE_1: ", enc_row_means)
+        print("->\tenc_msr: ", enc_msr)
+        print("->\tenc_row_msr: ", enc_row_msr)
+        print("->\tenc_col_msr: ", enc_col_msr)
 
         t_enc1 = time.perf_counter()
         t_enc.append(t_enc1 - t_enc0)
-        with open('encryptionTimeStep2', 'a') as saveFile:
-            saveFile.write("Encryption Time:{}".format(round(sum(t_enc), 5), "Seconds"))
-            saveFile.write("\n")
-        # print("Encryption Time: ", round(sum(t_enc), 5), "Seconds")
+        print("Encryption Time: ", round(sum(t_enc), 5), "Seconds")
 
         # Decrypting msr
         t_dec0 = time.perf_counter()
-        decrypted_msr = HE.decryptFrac(enc_msr)
+        decrypted_msr = enc_squared_residues.decrypt()[:n_elements:len(enc_squared_residues)].round()
 
         # Decrypting msr_row
-        decrypted_msr_row = np.empty(len(enc_row_msr), dtype=PyCtxt)
-        for i in np.arange(len(enc_row_msr)):
-            decrypted_msr_row[i] = HE.decryptFrac(enc_row_msr[i])
+        decrypted_msr_row = enc_rowwise_sum.decrypt()[:n_elements:len(cols)].round()
 
         # Decrypting msr_col
-        decrypted_msr_col = np.empty(len(enc_col_msr), dtype=PyCtxt)
-        for i in np.arange(len(enc_col_msr)):
-            decrypted_msr_col[i] = HE.decryptFrac(enc_col_msr[i])
-        t_dec1 = time.perf_counter()
+        decrypted_msr_col = enc_colwise_sum.decrypt()[:len(cols)].round()
 
+        t_dec1 = time.perf_counter()
         t_dec.append(t_dec1 - t_dec0)
-        with open('decryptionTimeStep2', 'a') as saveFile:
-            saveFile.write("Decryption Time:{}".format(round(sum(t_dec), 5), "Seconds"))
-            saveFile.write("\n")
-        # print("Decryption time: ", round(sum(t_dec), 5), "Seconds")
+        print("Decryption time: ", round(sum(t_dec), 5), "Seconds")
 
         return decrypted_msr, decrypted_msr_row, decrypted_msr_col
+
 
     def _calculate_msr_col_addition(self, data, rows, cols):
         """Calculate the mean squared residues of the columns for the node addition step."""
