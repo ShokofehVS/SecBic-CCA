@@ -1,47 +1,19 @@
-####################################################################
-###     ____  _ ____                  _                          ###
-###    | __ )(_) __ )  ___ _ __   ___| |__                       ###
-###    |  _ \| |  _ \ / _ \ '_ \ / __| '_ \                      ###
-###    | |_) | | |_) |  __/ | | | (__| | | |                     ###
-###    |____/|_|____/ \___|_| |_|\___|_| |_|                     ###
-###                                                              ###
-###--------------------------------------------------------------###
-###                                                              ###
-### This file is part of the BiBench package for biclustering    ###
-### analysis.                                                    ###
-###                                                              ###
-### Copyright (c) 2011 by:                                       ###
-###   * Kemal Eren,                                              ###
-###   * Mehmet Deveci,                                           ###
-###   * Umit V. Catalyurek                                       ###
-###                                                              ###
-###--------------------------------------------------------------###
-###                                                              ###
-### For license info, please see the README and LICENSE files    ###
-### in the main directory.                                       ###
-###                                                              ###
-###--------------------------------------------------------------###
+"""
+    SecBic-CCA: A Python library of privacy-preserving biclustering algorithm (Cheng and Church) with Homomorphic Encryption
+
+    Copyright (C) 2022  Shokofeh VahidianSadegh
+
+    This file is part of SecBic-CCA.
+
+"""
 
 """
 Methods for creating synthetic datasets with implanted biclusters.
 
 """
-#
-# from bibench.bicluster import Bicluster
 import numpy as np
-
-# from ..models import Bicluster, Biclustering
-# from biclustlib.bicluster import Bicluster, bicluster_algorithm
 from ..models import Bicluster, Biclustering
 import numpy
-
-# import rpy2.robjects as robjects
-# import rpy2.robjects.numpy2ri
-# import pkg_resources
-# v = pkg_resources.get_distribution('rpy2').version
-# if v[0:3] >= '2.2':
-#     rpy2.robjects.numpy2ri.activate()
-
 import random
 
 
@@ -112,7 +84,6 @@ def _shuffle_(data, expected, new_rows=None, new_cols=None):
                                              new_b_cols,
                                              shuffled_data))
     return shuffled_data, shuffled_biclusters
-
 
 
 def _make_row_matrix_(nrows, nclusts, nclust_rows, noverlap_rows):
@@ -581,197 +552,3 @@ def make_plaid_data(nrows=300, ncols=50,
     if shuffle:
         data, expected = _shuffle_(data, expected)
     return data, expected
-
-""""
-def make_fabia_data(nrows,
-                    ncols,
-                    nclusts,
-                    f1,
-                    f2,
-                    of1,
-                    of2,
-                    sd_noise,
-                    sd_z_noise,
-                    mean_z,
-                    sd_z,
-                    sd_l_noise,
-                    mean_l,
-                    sd_l,
-                    shuffle=True,
-                    pos=False):
-    """
-# Make FABIA-style data.
-#
-# An interface to the Bioconductor 'fabia' library's
-# makeFabiaDataset functions.
-#
-# Requires that 'fabia' be installed.
-#
-# Args:
-#     * nrows: number of observations.
-#     * ncols: number of samples.
-#     * nclusts: number of biclusters.
-#     * f1: ncols/f1 max. additional samples are active in a bicluster.
-#     * f2: nrows/f2 max. additional observations that form a pattern
-#         in a bicluster.
-#     * of1: minimal active samples in a bicluster.
-#     * of2: minimal observations that form a pattern in a bicluster.
-#     * sd_noise: Gaussian zero mean noise std on data matrix.
-#     * sd_z_noise: Gaussian zero mean noise std for deactivated hidden factors.
-#     * mean_z: Gaussian mean for activated factors.
-#     * sd_z: Gaussian std for activated factors.
-#     * sd_l_noise: Gaussian zero mean noise std if no observation patterns
-#         are present.
-#     * mean_l: Gaussian mean for observation patterns.
-#     * sd_l: Gaussian std for observation patterns.
-#     * shuffle: If True, shuffle dataset.
-#     * pos: Use the MakeFabiaDataPos functions
-
-"""
-    # robjects.r.library('fabia')
-
-    function = 'makeFabiaData'
-    if not shuffle:
-        function += "Blocks"
-    if pos:
-        function += "Pos"
-    func = robjects.r[function]
-
-    result = func(nrows,
-                  ncols,
-                  nclusts,
-                  f1,
-                  f2,
-                  of1,
-                  of2,
-                  sd_noise,
-                  sd_z_noise,
-                  mean_z,
-                  sd_z,
-                  sd_l_noise,
-                  mean_l,
-                  sd_l)
-
-    noisy_data = numpy.array(result[0]).copy()
-    noiseless_data = numpy.array(result[1]).copy()
-    cols_vector = result[2]
-    rows_vector = result[3]
-
-    f = lambda x: int(x) - 1
-    rows = []
-    for r in rows_vector:
-        rows.append(map(f, r))
-
-    cols = []
-    for c in cols_vector:
-        cols.append(map(f, c))
-
-    biclusters = []
-    for r, c in zip(rows, cols):
-        biclusters.append(Bicluster(r, c, noisy_data))
-
-    return noisy_data, biclusters
-
-
-def make_isa_data(nrows=300,
-                  ncols=50,
-                  nclusts=3,
-                  nclustrows=None,
-                  nclustcols=None,
-                  noise=0,
-                  bicluster_signals=None,
-                  bicluster_noise=None,
-                  noverlap_rows=0,
-                  noverlap_cols=None,
-                  shuffle=None):
-    """
-# Make ISA-style data.
-#
-# Generates a dataset using the Bioconductor 'isa2' package's
-# make.isa.data function.
-#
-# If an argument is None, it is not included, and isa2's defaults are used.
-#
-# Requires that 'isa2' be installed.
-#
-# Args:
-#     * nrows: Number of rows in the data matrix.
-#     * cols: Number of columns in the data matrix.
-#     * nclusts: Number of biclusters.
-#     * nclustrows: Rows in each bicluster.
-#         Defaults to round(0.5 * num_rows/num_fact)
-#     * nclustcols: Cols in each bicluster. round(0.5 * num_cols/num_fact)
-#     * noise: Standard deviation of normal noise in background.
-#     * bicluster_signals: List of base signals for each bicluster.
-#         Defaults to 1's.
-#     * bicluster_noise: List of noise standard deviations for each bicluster.
-#         Defaults to 0's.
-#     * noverlap_rows: Number of bicluster rows that overlap.
-#     * noverlap_cols: Number of coluster columns that overlap.
-#         Defaults to 'overlap_row'.
-#     * shuffle: If True, shuffle rows and columns.
-
-"""
-    args = locals()
-
-    isa_map = dict(
-        nrows='num_rows',
-        ncols='num_cols',
-        nclusts='num_fact',
-        nclustrows='mod_row_size',
-        nclustcols='mod_col_size',
-        noise='noise',
-        bicluster_signals='mod_signal',
-        bicluster_noise='mod_noise',
-        noverlap_rows='overlap_row',
-        noverlap_cols='overlap_col',
-        )
-
-    isa_args = dict()
-
-    for key, argkey in isa_map.iteritems():
-        isa_args[argkey] = args[key]
-
-    #remove empty keys
-    empty_keys = []
-    for key in isa_args:
-        if isa_args[key] is None:
-            empty_keys.append(key)
-    for key in empty_keys:
-        isa_args.pop(key)
-
-    for key in ['mod_signal', 'mod_noise']:
-        if key in isa_args:
-            isa_args[key] = robjects.FloatVector(list(isa_args[key]))
-
-    robjects.r.library('isa2')
-
-    #get data
-    func = robjects.r['isa.in.silico']
-    result = func(**isa_args)
-
-    #convert to python
-    data = numpy.array(robjects.Matrix(result[0])).copy()
-    rows = numpy.array(robjects.Matrix(result[1])).copy()
-    cols = numpy.array(robjects.Matrix(result[2])).copy()
-
-    nbiclusters = rows.shape[1]
-
-    row_list = []
-    for i in range(nbiclusters):
-        row = list(rows[:,i].nonzero()[0])
-        row_list.append(row)
-
-    col_list = []
-    for i in range(nbiclusters):
-        col = list(cols[:,i].nonzero()[0])
-        col_list.append(col)
-
-    expected = []
-    for r, c, in zip(row_list, col_list):
-        expected.append(Bicluster(r, c, data))
-
-    if shuffle:
-        data, expected = _shuffle_(data, expected)
-    return data, expected
-"""
