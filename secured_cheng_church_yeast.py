@@ -1,10 +1,10 @@
 import time
-from biclustlib.algorithms import SecuredChengChurchAlgorithm
-# from biclustlib.algorithms import SecuredChengChurchAlgorithmType1
-from biclustlib.algorithms import SecuredChengChurchAlgorithmType2
-from biclustlib.algorithms import SecuredChengChurchAlgorithmType3
-from biclustlib.algorithms import SecuredChengChurchAlgorithmType4
-from biclustlib.datasets import load_yeast_tavazoie, synthetic
+from SecBiclib.algorithms import SecuredChengChurchAlgorithm
+# from SecBiclib.algorithms import SecuredChengChurchAlgorithmType1
+from SecBiclib.algorithms import SecuredChengChurchAlgorithmType2
+from SecBiclib.algorithms import SecuredChengChurchAlgorithmType3
+from SecBiclib.algorithms import SecuredChengChurchAlgorithmType4
+from SecBiclib.datasets import load_yeast_tavazoie, synthetic
 import numpy as np
 
 m0 = time.perf_counter()

@@ -29,10 +29,10 @@ def csi(predicted_biclustering, reference_biclustering, num_rows, num_cols, spar
 
     Parameters
     ----------
-    predicted_biclustering : biclustlib.model.Biclustering
+    predicted_biclustering : SecBiclib.model.Biclustering
         Predicted biclustering solution.
 
-    reference_biclustering : biclustlib.model.Biclustering
+    reference_biclustering : SecBiclib.model.Biclustering
         Reference biclustering solution.
 
     num_rows : int

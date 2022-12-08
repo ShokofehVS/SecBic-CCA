@@ -1,13 +1,13 @@
 import time
-from biclustlib.algorithms import ChengChurchAlgorithm
-from biclustlib.algorithms import SecuredChengChurchAlgorithm
-from biclustlib.algorithms import SecuredChengChurchAlgorithmType1
-from biclustlib.algorithms import SecuredChengChurchAlgorithmType2
-from biclustlib.algorithms import SecuredChengChurchAlgorithmType3
-from biclustlib.algorithms import SecuredChengChurchAlgorithmType4
-from biclustlib.evaluation import clustering_error
-from biclustlib.datasets import load_yeast_tavazoie
-from biclustlib.datasets import synthetic
+from SecBiclib.algorithms import ChengChurchAlgorithm
+from SecBiclib.algorithms import SecuredChengChurchAlgorithm
+from SecBiclib.algorithms import SecuredChengChurchAlgorithmType1
+from SecBiclib.algorithms import SecuredChengChurchAlgorithmType2
+from SecBiclib.algorithms import SecuredChengChurchAlgorithmType3
+from SecBiclib.algorithms import SecuredChengChurchAlgorithmType4
+from SecBiclib.evaluation import clustering_error
+from SecBiclib.datasets import load_yeast_tavazoie
+from SecBiclib.datasets import synthetic
 import numpy as np
 
 m0 = time.perf_counter()
@@ -63,6 +63,6 @@ m1 = time.perf_counter()
 # print("Time Performance in Original Algorithm: ", round(m1 - m0, 5), "Seconds")
 
 
-# f = open("biclustlib.txt", "r")
+# f = open("SecBiclib.txt", "r")
 
 

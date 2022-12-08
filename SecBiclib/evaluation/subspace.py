@@ -32,10 +32,10 @@ def clustering_error(predicted_biclustering, reference_biclustering, num_rows, n
 
     Parameters
     ----------
-    predicted_biclustering : biclustlib.model.Biclustering
+    predicted_biclustering : SecBiclib.model.Biclustering
         Predicted biclustering solution.
 
-    reference_biclustering : biclustlib.model.Biclustering
+    reference_biclustering : SecBiclib.model.Biclustering
         Reference biclustering solution.
 
     num_rows : int
@@ -77,10 +77,10 @@ def relative_non_intersecting_area(predicted_biclustering, reference_biclusterin
 
     Parameters
     ----------
-    predicted_biclustering : biclustlib.model.Biclustering
+    predicted_biclustering : SecBiclib.model.Biclustering
         Predicted biclustering solution.
 
-    reference_biclustering : biclustlib.model.Biclustering
+    reference_biclustering : SecBiclib.model.Biclustering
         Reference biclustering solution.
 
     num_rows : int

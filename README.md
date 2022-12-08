@@ -49,8 +49,8 @@ To run the sample implementation of Cheng and Church algorithm:
 
 ```python
 import time
-from biclustlib.algorithms import ChengChurchAlgorithm
-from biclustlib.datasets import load_yeast_tavazoie
+from SecBiclib.algorithms import ChengChurchAlgorithm
+from SecBiclib.datasets import load_yeast_tavazoie
 import numpy as np
 
 m0 = time.perf_counter()
@@ -77,8 +77,8 @@ To run the sample implementation of Secured version of Cheng and Church algorith
 
 ```python
 import time
-from biclustlib.algorithms import SecuredChengChurchAlgorithm
-from biclustlib.datasets import load_yeast_tavazoie
+from SecBiclib.algorithms import SecuredChengChurchAlgorithm
+from SecBiclib.datasets import load_yeast_tavazoie
 import numpy as np
 
 m0 = time.perf_counter()

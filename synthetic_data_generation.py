@@ -1,8 +1,8 @@
 import numpy as np
 import time
-from biclustlib.algorithms import ChengChurchAlgorithm
-from biclustlib.algorithms import SecuredChengChurchAlgorithm
-from biclustlib.datasets import synthetic
+from SecBiclib.algorithms import ChengChurchAlgorithm
+from SecBiclib.algorithms import SecuredChengChurchAlgorithm
+from SecBiclib.datasets import synthetic
 
 m0 = time.perf_counter()
 

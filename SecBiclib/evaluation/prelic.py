@@ -26,10 +26,10 @@ def prelic_relevance(predicted_biclustering, reference_biclustering):
 
     Parameters
     ----------
-    predicted_biclustering : biclustlib.model.Biclustering
+    predicted_biclustering : SecBiclib.model.Biclustering
         Predicted biclustering solution.
 
-    reference_biclustering : biclustlib.model.Biclustering
+    reference_biclustering : SecBiclib.model.Biclustering
         Reference biclustering solution.
 
     Returns
@@ -63,10 +63,10 @@ def prelic_recovery(predicted_biclustering, reference_biclustering):
 
     Parameters
     ----------
-    predicted_biclustering : biclustlib.model.Biclustering
+    predicted_biclustering : SecBiclib.model.Biclustering
         Predicted biclustering solution.
 
-    reference_biclustering : biclustlib.model.Biclustering
+    reference_biclustering : SecBiclib.model.Biclustering
         Reference biclustering solution.
 
     Returns

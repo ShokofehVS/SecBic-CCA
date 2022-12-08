@@ -21,10 +21,10 @@ def liu_wang_match_score(predicted_biclustering, reference_biclustering):
 
     Parameters
     ----------
-    predicted_biclustering : biclustlib.model.Biclustering
+    predicted_biclustering : SecBiclib.model.Biclustering
         Predicted biclustering solution.
 
-    reference_biclustering : biclustlib.model.Biclustering
+    reference_biclustering : SecBiclib.model.Biclustering
         Reference biclustering solution.
 
     Returns

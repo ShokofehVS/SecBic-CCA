@@ -1,4 +1,4 @@
-from biclustlib.models import Biclustering
+from SecBiclib.models import Biclustering
 
 def check_biclusterings(b1, b2):
     if not isinstance(b1, Biclustering) or not isinstance(b2, Biclustering):

@@ -1,11 +1,11 @@
-from biclustlib.algorithms import ChengChurchAlgorithm
-from biclustlib.algorithms import SecuredChengChurchAlgorithm
-from biclustlib.algorithms import SecuredChengChurchAlgorithmType1
-from biclustlib.algorithms import SecuredChengChurchAlgorithmType2
-from biclustlib.algorithms import SecuredChengChurchAlgorithmType3
-from biclustlib.algorithms import SecuredChengChurchAlgorithmType4
-from biclustlib.evaluation import clustering_error
-from biclustlib.datasets import load_yeast_tavazoie
+from SecBiclib.algorithms import ChengChurchAlgorithm
+from SecBiclib.algorithms import SecuredChengChurchAlgorithm
+from SecBiclib.algorithms import SecuredChengChurchAlgorithmType1
+from SecBiclib.algorithms import SecuredChengChurchAlgorithmType2
+from SecBiclib.algorithms import SecuredChengChurchAlgorithmType3
+from SecBiclib.algorithms import SecuredChengChurchAlgorithmType4
+from SecBiclib.evaluation import clustering_error
+from SecBiclib.datasets import load_yeast_tavazoie
 import matplotlib.pyplot as plt
 
 
