@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(name='SecBiclib',
       version='0.1',
@@ -7,5 +7,6 @@ setup(name='SecBiclib',
       author='...',
       author_email='...',
       license='MIT',
-      packages=['SecBiclib'],
+      packages=find_packages(),
+      include_package_data=True,
       zip_safe=False)
