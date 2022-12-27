@@ -114,7 +114,7 @@ class SecuredChengChurchAlgorithm(BaseBiclusteringAlgorithm):
         the original paper)"""
         msr, row_msr, col_msr = self._calculate_msr(data, rows, cols, HE, t_enc, t_dec)
 
-        while msr.all() > msr_thr.all():
+        while msr > msr_thr:
             self._single_deletion(data, rows, cols, row_msr, col_msr, HE)
             msr, row_msr, col_msr = self._calculate_msr(data, rows, cols, HE, t_enc, t_dec)
 
@@ -138,7 +138,7 @@ class SecuredChengChurchAlgorithm(BaseBiclusteringAlgorithm):
         the original paper)"""
         msr, row_msr, col_msr = self._calculate_msr(data, rows, cols, HE, t_enc, t_dec)
 
-        stop = True if msr.all() <= msr_thr.all() else False
+        stop = True if msr <= msr_thr else False
 
         while not stop:
             cols_old = np.copy(cols)
@@ -250,7 +250,7 @@ class SecuredChengChurchAlgorithm(BaseBiclusteringAlgorithm):
 
         # Decrypting msr
         t_dec0 = time.perf_counter()
-        decrypted_msr = enc_squared_residues.decrypt()[:n_elements:len(enc_squared_residues)].round()
+        decrypted_msr = enc_squared_residues.decrypt()[0].round()
 
         # Decrypting msr_row
         decrypted_msr_row = enc_rowwise_sum.decrypt()[:n_elements:len(cols)].round()
