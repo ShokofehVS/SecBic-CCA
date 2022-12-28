@@ -26,7 +26,7 @@ If you miss something you can simply type:
 
 If you have all dependencies installed:
 
-	   > python setup.py install
+	   > pip3 install .
 
 To install Pyfhel, on Linux,`gcc6` for Python (`3.5+`) should be installed. (more information regarding [installation of Pyfhel ](https://github.com/ibarrond/Pyfhel))
 
@@ -50,7 +50,13 @@ To measure the similarity of encrypted biclusters with non-encrypted version, we
   4. `scripts` small programs to showcase functionalities of SecBic library
 
 ## Example of Cheng and Church Algorithm (CCA)
+
+To run the sample implementation of Cheng and Church algorithm:
+
+	   > python3 SecBiclib/scripts/secured_cheng_church_yeast.py
+
 ```python
+
 import time
 from SecBiclib.algorithms import ChengChurchAlgorithm
 from SecBiclib.datasets import load_yeast_tavazoie
@@ -74,6 +80,12 @@ m1 = time.perf_counter()
 print("Time Performance in Original Algorithm: ", round(m1 - m0, 5), "Seconds")
 ```
 ## Example of Secured Cheng and Church Algorithm (SeCCA)
+
+To run the sample implementation of Secured Cheng and Church algorithm:
+
+	   > python3 SecBiclib/scripts/secured_cheng_church_yeast.py
+
+
 ```python
 import time
 from SecBiclib.algorithms import SecuredChengChurchAlgorithm
