@@ -49,12 +49,20 @@ col_sum=data.copy()
 
 print("Shift and sum:")
 print(c_data)
+
+
+c_sum=c_data.copy()
+test_shift=c_data << 1*real_N_cols
+test_shift=c_data << 2*real_N_cols
+c_sum+=test_shift
+
 # col-wise sum:
 for i in range(1,N_rows):
-    c_col_sum+=c_data << N_cols*i
+    c_col_sum+=c_data << real_N_cols*i
     col_sum+=shift(data,N_cols*i)
     print(c_col_sum)
 print("COLUMN-WISE SUM:")
+#result=reshape(HE.decryptFrac(c_sum),(real_N_rows,real_N_cols))
 result=reshape(HE.decryptFrac(c_col_sum),(real_N_rows,real_N_cols))
 print("SHOULD BE:\n",col_sum,"\nRESULT:\n",result)
 #print([result[i] for i in range(len(result))])
