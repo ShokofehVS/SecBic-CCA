@@ -37,13 +37,15 @@ def row_sum(cipher_data, data_size):
 
 def col_mean(cipher_data, data_size):
     N_rows=data_size[0][0]
-    mean=col_sum(cipher_data, data_size)/N_rows
+    mean=col_sum(cipher_data, data_size)/[N_rows for i in range(data_size[1][0]*data_size[1][0])]
     return mean
 
 def row_mean(cipher_data, data_size):
-    N_cols=data_size[0][0]
-    mean=row_sum(cipher_data, data_size)/N_cols
+    N_cols=data_size[0][1]
+    mean=row_sum(cipher_data, data_size)/[N_cols for i in range(data_size[1][0]*data_size[1][0])]
     return mean
+
+##############################################################################
 
 HE = Pyfhel()
 ckks_params = {
@@ -64,6 +66,8 @@ N_rows,N_cols=np.shape(data)
 
 print("Data-Array:")
 print(data)
+print("Array / 2:")
+print(data/2)
 
 #Make bigger array with all rows, cols needed for shifting:
 sup_data=np.array([[data[i,j] for j in range(-N_cols,N_cols)] for i in range(-N_rows,N_rows)])
@@ -78,6 +82,10 @@ print(data_size)
 flat_sup_data=sup_data.flatten()
 #print(flat_sup_array)
 c_data = HE.encryptFrac(flat_sup_data) # Encrypts the plaintext ptxt_x and returns a PyCtxt
+#c_half=c_data/[2 for i in range(real_N_rows*real_N_cols)]
+#print("Cipher-Array / 2:")
+#print(reshape(HE.decryptFrac(c_half), data_size[1]))
+
 
 c_col_sum=c_data.copy()
 c_row_sum=c_data.copy()
