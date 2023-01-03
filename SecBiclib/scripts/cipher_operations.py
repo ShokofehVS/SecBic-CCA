@@ -20,6 +20,31 @@ def shift(array,by):
         shifted=flat_shifted.reshape(a_shape)
         return shifted
 
+def col_sum(cipher_data, data_size):
+    N_rows=data_size[0][0]
+    real_N_cols=data_size[1][1]
+    c_col_sum=cipher_data.copy()
+    for i in range(1,N_rows):
+        c_col_sum+=cipher_data << real_N_cols*i
+    return c_col_sum
+
+def row_sum(cipher_data, data_size):
+    N_cols=data_size[0][1]
+    c_row_sum=cipher_data.copy()
+    for i in range(1,N_cols):
+        c_row_sum+=cipher_data << i
+    return c_row_sum
+
+def col_mean(cipher_data, data_size):
+    N_rows=data_size[0][0]
+    mean=col_sum(cipher_data, data_size)/N_rows
+    return mean
+
+def row_mean(cipher_data, data_size):
+    N_cols=data_size[0][0]
+    mean=row_sum(cipher_data, data_size)/N_cols
+    return mean
+
 HE = Pyfhel()
 ckks_params = {
     'scheme': 'CKKS',
@@ -44,6 +69,9 @@ print(data)
 sup_data=np.array([[data[i,j] for j in range(-N_cols,N_cols)] for i in range(-N_rows,N_rows)])
 real_N_rows=2*N_rows
 real_N_cols=2*N_cols
+data_size=((N_rows, N_cols), (real_N_rows, real_N_cols))
+print("Data-Size:")
+print(data_size)
 #print("With added rows, cols:")
 #print(sup_array)
 #print("Converted to 1d:")
@@ -53,8 +81,8 @@ c_data = HE.encryptFrac(flat_sup_data) # Encrypts the plaintext ptxt_x and retur
 
 c_col_sum=c_data.copy()
 c_row_sum=c_data.copy()
-col_sum=sup_data.copy()
-row_sum=sup_data.copy()
+n_col_sum=sup_data.copy()
+n_row_sum=sup_data.copy()
 print("Shift and sum:")
 print(c_data)
 
@@ -64,26 +92,38 @@ print(c_data)
 #test_shift=c_data << 2*real_N_cols
 #c_sum+=test_shift
 
-# col-wise sum:
+# col-wise sum,mean:
 for i in range(1,N_rows):
     c_col_sum+=c_data << real_N_cols*i
-    col_sum+=shift(sup_data,real_N_cols*i)
+    n_col_sum+=shift(sup_data,real_N_cols*i)
+n_col_mean=n_col_sum/N_rows
 print("COLUMN-WISE SUM:")
 #result=reshape(HE.decryptFrac(c_sum),(real_N_rows,real_N_cols))
-result=reshape(HE.decryptFrac(c_col_sum),(real_N_rows,real_N_cols))
-print("SHOULD BE:\n",col_sum,"\nRESULT:\n",result)
+result=reshape(HE.decryptFrac(col_sum(c_data, data_size)),(real_N_rows,real_N_cols))
+print("SHOULD BE:\n",n_col_sum,"\nRESULT:\n",result)
+
+print("COLUMN-WISE MEAN:")
+#result=reshape(HE.decryptFrac(c_sum),(real_N_rows,real_N_cols))
+result=reshape(HE.decryptFrac(col_mean(c_data, data_size)),(real_N_rows,real_N_cols))
+print("SHOULD BE:\n",n_col_mean,"\nRESULT:\n",result)
 
 # row-wise sum:
-print("ROW-WISE SUM:")
 for i in range(1,N_cols):
     c_row_sum+=c_data << i
     shifted=shift(sup_data,-i)
-    row_sum+=shifted
+    n_row_sum+=shifted
+n_row_mean=n_row_sum/N_cols
+print("ROW-WISE SUM:")
 #result=reshape(HE.decryptFrac(c_sum),(real_N_rows,real_N_cols))
-result=reshape(HE.decryptFrac(c_row_sum),(real_N_rows,real_N_cols))
-print("SHOULD BE:\n",row_sum,"\nRESULT:\n",result)
-print("ERRORS:\n",result-row_sum)
+result=reshape(HE.decryptFrac(row_sum(c_data, data_size)),(real_N_rows,real_N_cols))
+print("SHOULD BE:\n",n_row_sum,"\nRESULT:\n",result)
+print("ERRORS:\n",result-n_row_sum)
 
+print("ROW-WISE MEAN:")
+#result=reshape(HE.decryptFrac(c_sum),(real_N_rows,real_N_cols))
+result=reshape(HE.decryptFrac(row_mean(c_data, data_size)),(real_N_rows,real_N_cols))
+print("SHOULD BE:\n",n_row_mean,"\nRESULT:\n",result)
+print("ERRORS:\n",result-n_row_mean)
 #print([result[i] for i in range(len(result))])
 
 ##  1. Mean
