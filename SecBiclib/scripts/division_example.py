@@ -40,3 +40,9 @@ print(HE.decryptFrac(c_half_byint)[:data_size])     # printing only relevant ent
 print()
 print("Cipher-Array / [2, ..., 2]:")
 print(HE.decryptFrac(c_half_bylist)[:data_size])
+print()
+
+#Multiplications test
+print("Multiplication by [0, 0, 0, 1, 0, ..., 0]:")
+c_select_multiplication=c_data*[1 if i==3 else 0 for i in range(data_size)]  # Set all values to 0 except entry with index 3
+print(HE.decryptFrac(c_select_multiplication)[:data_size])
