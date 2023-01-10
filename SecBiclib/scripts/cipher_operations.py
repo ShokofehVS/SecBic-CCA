@@ -1,9 +1,13 @@
 import numpy as np
 from Pyfhel import Pyfhel
 
+#####################################################################
+# Array operations for testing and evaluation:
+
 def reshape(array, shape):
     sub_array=array[:(shape[0]*shape[1])]
     return sub_array.reshape(shape)
+
 def shift(array,by):
     if not isinstance(by,int):
         raise TypeError('Shift distance has to be integer but was given as: '+str(type(by)))
@@ -19,6 +23,26 @@ def shift(array,by):
         flat_shifted[by:]=flat[:-by]
         shifted=flat_shifted.reshape(a_shape)
         return shifted
+
+def array_col_mean(array,data_size):
+    N_rows=data_size[0][0]
+    real_N_cols=data_size[1][1]
+    col_sum=array.copy()
+    for i in range(1,N_rows):
+        col_sum+=shift(array,real_N_cols*i)
+    col_mean=col_sum/N_rows
+    return col_mean
+
+def array_row_mean(array,data_size):
+    N_cols=data_size[0][1]
+    row_sum=array.copy()
+    for i in range(1,N_cols):
+        row_sum+=shift(array,-i)
+    row_mean=row_sum/N_cols
+    return row_mean
+
+#####################################################################
+# Ciphertext operations:
 
 def col_sum(cipher_data, data_size):
     N_rows=data_size[0][0]
@@ -45,9 +69,15 @@ def row_mean(cipher_data, data_size):
     mean=row_sum(cipher_data, data_size)/[N_cols for i in range(data_size[1][0]*data_size[1][0])]
     return mean
 
-if __name__=="__main__":
+def data_mean(cipher_data, data_size):
+    mean=col_mean(row_mean(cipher_data, data_size), data_size)
+    # col(row()) or row(col()) ? Performance ?
+    return mean
 
-    ##############################################################################
+#####################################################################
+# Testing:
+
+if __name__=="__main__":
 
     HE = Pyfhel()
     ckks_params = {
@@ -135,6 +165,15 @@ if __name__=="__main__":
     print("SHOULD BE:\n",n_row_mean,"\nRESULT:\n",result)
     print("ERRORS:\n",result-n_row_mean)
     #print([result[i] for i in range(len(result))])
+
+    print("DATA MEAN:")
+    result=reshape(HE.decryptFrac(data_mean(c_data, data_size)),(real_N_rows,real_N_cols))
+    print("SHOULD BE:\n",array_row_mean(array_col_mean(sup_data, data_size), data_size),"\nRESULT:\n",result)
+
+    print(data)
+
+#    print("\nOLD ROW MEAN\n",n_row_mean,"\nNEW ROW MEAN\n",array_row_mean(sup_data,data_size))
+#    print("\nOLD COL MEAN\n",n_col_mean,"\nNEW COL MEAN\n",array_col_mean(sup_data,data_size))
 
     ##  1. Mean
     #c_mean = (ctxt_x + ctxt_y) / 2
