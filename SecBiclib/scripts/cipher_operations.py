@@ -1,7 +1,8 @@
 import numpy as np
 from Pyfhel import Pyfhel
+from SecBiclib.algorithms import cca
 
-#####################################################################
+############################################################################################
 # Array operations for testing and evaluation:
 
 def reshape(array, shape):
@@ -41,7 +42,7 @@ def array_row_mean(array,data_size):
     row_mean=row_sum/N_cols
     return row_mean
 
-#####################################################################
+############################################################################################
 # Ciphertext operations:
 
 def col_sum(cipher_data, data_size):
@@ -74,7 +75,30 @@ def data_mean(cipher_data, data_size):
     # col(row()) or row(col()) ? Performance ?
     return mean
 
-#####################################################################
+def calculate_msr(cipher_data, data_size, refill=False):
+    cipher_row_mean=row_mean(cipher_data, data_size)
+    cipher_col_mean=col_mean(cipher_data, data_size)
+    cipher_data_mean=data_mean(cipher_data, data_size)
+    # Rescaling:
+    HE.rescale_to_next(cipher_row_mean)
+    HE.rescale_to_next(cipher_col_mean)
+    HE.rescale_to_next(cipher_data_mean)
+    # MSR-Calculation:
+    cipher_residue=cipher_data-cipher_row_mean-cipher_col_mean+cipher_data_mean
+    cipher_square_residue=cipher_residue**2
+    HE.rescale_to_next(cipher_square_residue)
+    cipher_msr=data_mean(~cipher_square_residue, data_size)
+    HE.rescale_to_next(cipher_msr)
+#    Trying to fill the array with reasonable data again:
+#    if refill:
+#        cipher_msr=cipher_msr/[1 if i==1 else 2 for i in range(data_size[0][1]*data_size[0][0])]
+#        cipher_msr_shift=cipher_msr.copy()
+#        for i in range(data_size[0][1]*data_size[0][0]):    # OR data_size[1] for whole data?
+#            cipher_msr_shift=cipher_msr_shift>>1
+#            cipher_msr+=cipher_msr_shift
+    return cipher_msr
+
+############################################################################################
 # Testing:
 
 if __name__=="__main__":
@@ -84,12 +108,12 @@ if __name__=="__main__":
         'scheme': 'CKKS',
         'n': 2**14,
         'scale': 2**30,
-        'qi_sizes': [60, 30, 30, 30, 60]
+        'qi_sizes': [60, 30, 30, 30, 30, 30, 60]
     }
     HE.contextGen(**ckks_params)  # Generate context for bfv scheme
     HE.keyGen()             # Key Generation: generates a pair of public/secret keys
     HE.rotateKeyGen()
-
+    HE.relinKeyGen()
     data = np.array([[0.1, 0.2, -0.3, 0.4],
                       [-0.5, 0.6,0.7,-0.8],
                       [0.9,-1.,1.1,1.2]], dtype=np.float64)    # Always use type float64!
@@ -98,8 +122,8 @@ if __name__=="__main__":
 
     print("Data-Array:")
     print(data)
-    print("Array / 2:")
-    print(data/2)
+#    print("Array / 2:")
+#    print(data/2)
 
     #Make bigger array with all rows, cols needed for shifting:
     sup_data=np.array([[data[i,j] for j in range(-N_cols,N_cols)] for i in range(-N_rows,N_rows)])
@@ -108,8 +132,8 @@ if __name__=="__main__":
     data_size=((N_rows, N_cols), (real_N_rows, real_N_cols))
     print("Data-Size:")
     print(data_size)
-    #print("With added rows, cols:")
-    #print(sup_array)
+    print("With added rows, cols:")
+    print(sup_data)
     #print("Converted to 1d:")
     flat_sup_data=sup_data.flatten()
     #print(flat_sup_array)
@@ -123,8 +147,8 @@ if __name__=="__main__":
     c_row_sum=c_data.copy()
     n_col_sum=sup_data.copy()
     n_row_sum=sup_data.copy()
-    print("Shift and sum:")
-    print(c_data)
+#    print("Shift and sum:")
+#    print(c_data)
 
     # testing shifts:
     #c_sum=c_data.copy()
@@ -137,12 +161,12 @@ if __name__=="__main__":
         c_col_sum+=c_data << real_N_cols*i
         n_col_sum+=shift(sup_data,real_N_cols*i)
     n_col_mean=n_col_sum/N_rows
-    print("COLUMN-WISE SUM:")
+    print("##################################################################\nCOLUMN-WISE SUM:")
     #result=reshape(HE.decryptFrac(c_sum),(real_N_rows,real_N_cols))
     result=reshape(HE.decryptFrac(col_sum(c_data, data_size)),(real_N_rows,real_N_cols))
     print("SHOULD BE:\n",n_col_sum,"\nRESULT:\n",result)
 
-    print("COLUMN-WISE MEAN:")
+    print("##################################################################\nCOLUMN-WISE MEAN:")
     #result=reshape(HE.decryptFrac(c_sum),(real_N_rows,real_N_cols))
     result=reshape(HE.decryptFrac(col_mean(c_data, data_size)),(real_N_rows,real_N_cols))
     print("SHOULD BE:\n",n_col_mean,"\nRESULT:\n",result)
@@ -153,24 +177,39 @@ if __name__=="__main__":
         shifted=shift(sup_data,-i)
         n_row_sum+=shifted
     n_row_mean=n_row_sum/N_cols
-    print("ROW-WISE SUM:")
+
+    # msr:
+    inner_msr=sup_data-n_row_mean-n_col_mean+array_row_mean(array_col_mean(sup_data, data_size), data_size)
+    print(array_col_mean(inner_msr**2,data_size))
+    print(array_row_mean(inner_msr**2,data_size))
+    ref_cca=cca.ChengChurchAlgorithm()
+    #print(sup_data)
+    max_row,max_col=data_size[0]
+    ref_msr=ref_cca._calculate_msr(sup_data,list(range(max_row)), list(range(max_col)))
+
+    print("##################################################################\nROW-WISE SUM:")
     #result=reshape(HE.decryptFrac(c_sum),(real_N_rows,real_N_cols))
     result=reshape(HE.decryptFrac(row_sum(c_data, data_size)),(real_N_rows,real_N_cols))
     print("SHOULD BE:\n",n_row_sum,"\nRESULT:\n",result)
     print("ERRORS:\n",result-n_row_sum)
 
-    print("ROW-WISE MEAN:")
+    print("##################################################################\nROW-WISE MEAN:")
     #result=reshape(HE.decryptFrac(c_sum),(real_N_rows,real_N_cols))
     result=reshape(HE.decryptFrac(row_mean(c_data, data_size)),(real_N_rows,real_N_cols))
     print("SHOULD BE:\n",n_row_mean,"\nRESULT:\n",result)
     print("ERRORS:\n",result-n_row_mean)
     #print([result[i] for i in range(len(result))])
 
-    print("DATA MEAN:")
+    print("##################################################################\nDATA MEAN:")
     result=reshape(HE.decryptFrac(data_mean(c_data, data_size)),(real_N_rows,real_N_cols))
     print("SHOULD BE:\n",array_row_mean(array_col_mean(sup_data, data_size), data_size),"\nRESULT:\n",result)
 
-    print(data)
+    print("##################################################################\nMSR:")
+    #result=reshape(HE.decryptFrac(c_sum),(real_N_rows,real_N_cols))
+    result=reshape(HE.decryptFrac(calculate_msr(c_data, data_size)),(real_N_rows,real_N_cols))
+    print("SHOULD BE:\n",ref_msr[0],"\nRESULT:\n",result)
+    print("ERRORS:\n",result-ref_msr[0])
+
 
 #    print("\nOLD ROW MEAN\n",n_row_mean,"\nNEW ROW MEAN\n",array_row_mean(sup_data,data_size))
 #    print("\nOLD COL MEAN\n",n_col_mean,"\nNEW COL MEAN\n",array_col_mean(sup_data,data_size))
