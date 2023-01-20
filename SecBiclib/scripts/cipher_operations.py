@@ -1,4 +1,5 @@
 import numpy as np
+from numpy import random as rd
 from Pyfhel import Pyfhel
 from SecBiclib.algorithms import cca
 
@@ -98,6 +99,52 @@ def calculate_msr(cipher_data, data_size, refill=False):
 #            cipher_msr+=cipher_msr_shift
     return cipher_msr
 
+def ones(start, end, length):
+    if not start:
+        if end:
+            return [1 if i in range(end) else 0 for i in range(length)]
+        else:
+            raise ValueError("Start and end arguments cannot both be None")
+    elif not end:
+        return [1 if i in range(start,length) else 0 for i in range(length)]
+    else:
+        raise NotImplementedError("Not yet implemented returning ones array between both start and end value")
+
+def cipher_ones(HE, start, end, length):
+    return HE.encrypt(ones(start,end,length))
+
+def list_shift(HE,cipher_list, by, sub_len):
+    # Check if 'by' is realistic:
+    if by==0:
+        return cipher_list
+    elif by > sub_len:
+        raise ValueError("Value of shift distance Argument 'by' cannot be larger than the size of sub-ciphertexts")
+
+    copy_first=cipher_list[0].copy()                # Make a copy of the first ciphertext
+
+    for i in range(len(cipher_list)-1):             # For all ciphertexts in list except last one
+
+        cipher_list[i]=cipher_list[i]<<by           # Do the shift of the single ciphertext
+
+        remaining=cipher_list[i]*cipher_ones(HE,None,sub_len-by,sub_len)    # Force the shifted single ciphertext entries
+                                                                            # to zero where they will be overwritten
+
+        from_outside=cipher_list[i+1].copy()                                # Make a copy of the next single ciphertext
+
+        from_outside=(from_outside>>(sub_len-by))*cipher_ones(HE,sub_len-by,None,sub_len) # Shift this copy so that the
+                                                                                          # values which will appear in
+                                                                                          # the first ciphertext are at
+                                                                                          # the postion where the first
+                                                                                          # ciphertext is now empty,
+                                                                                          # then force all other values
+                                                                                          # to zero
+        cipher_list[i]=remaining+from_outside       # Add the values from next ciphertext
+                                                    # to the first
+    # Do the same as above manually for the last ciphertext in the list, with expansion values coming from the first ciphertext in the list:
+    cipher_list[len(cipher_list)-1]=cipher_list[len(cipher_list)-1]*cipher_ones(HE,None,sub_len-by,sub_len)+(copy_first>>(sub_len-by))*cipher_ones(HE,sub_len-by,None,sub_len)
+
+    return cipher_list  # DONE
+
 ############################################################################################
 # Testing:
 
@@ -114,117 +161,126 @@ if __name__=="__main__":
     HE.keyGen()             # Key Generation: generates a pair of public/secret keys
     HE.rotateKeyGen()
     HE.relinKeyGen()
-    data = np.array([[0.1, 0.2, -0.3, 0.4],
-                      [-0.5, 0.6,0.7,-0.8],
-                      [0.9,-1.,1.1,1.2]], dtype=np.float64)    # Always use type float64!
+#    data = np.array([[0.1, 0.2, -0.3, 0.4],
+#                      [-0.5, 0.6,0.7,-0.8],
+#                      [0.9,-1.,1.1,1.2]], dtype=np.float64)    # Always use type float64!
+#
+#    N_rows,N_cols=np.shape(data)
+#
+#    print("Data-Array:")
+#    print(data)
+##    print("Array / 2:")
+##    print(data/2)
+#
+#    #Make bigger array with all rows, cols needed for shifting:
+#    sup_data=np.array([[data[i,j] for j in range(-N_cols,N_cols)] for i in range(-N_rows,N_rows)])
+#    real_N_rows=2*N_rows
+#    real_N_cols=2*N_cols
+#    data_size=((N_rows, N_cols), (real_N_rows, real_N_cols))
+#    print("Data-Size:")
+#    print(data_size)
+#    print("With added rows, cols:")
+#    print(sup_data)
+#    #print("Converted to 1d:")
+#    flat_sup_data=sup_data.flatten()
+#    #print(flat_sup_array)
+#    c_data = HE.encryptFrac(flat_sup_data) # Encrypts the plaintext ptxt_x and returns a PyCtxt
+#    #c_half=c_data/[2 for i in range(real_N_rows*real_N_cols)]
+#    #print("Cipher-Array / 2:")
+#    #print(reshape(HE.decryptFrac(c_half), data_size[1]))
+#
+#
+#    c_col_sum=c_data.copy()
+#    c_row_sum=c_data.copy()
+#    n_col_sum=sup_data.copy()
+#    n_row_sum=sup_data.copy()
+##    print("Shift and sum:")
+##    print(c_data)
+#
+#    # testing shifts:
+#    #c_sum=c_data.copy()
+#    #test_shift=c_data << 1*real_N_cols
+#    #test_shift=c_data << 2*real_N_cols
+#    #c_sum+=test_shift
+#
+#    # col-wise sum,mean:
+#    for i in range(1,N_rows):
+#        c_col_sum+=c_data << real_N_cols*i
+#        n_col_sum+=shift(sup_data,real_N_cols*i)
+#    n_col_mean=n_col_sum/N_rows
+#    print("##################################################################\nCOLUMN-WISE SUM:")
+#    #result=reshape(HE.decryptFrac(c_sum),(real_N_rows,real_N_cols))
+#    result=reshape(HE.decryptFrac(col_sum(c_data, data_size)),(real_N_rows,real_N_cols))
+#    print("SHOULD BE:\n",n_col_sum,"\nRESULT:\n",result)
+#
+#    print("##################################################################\nCOLUMN-WISE MEAN:")
+#    #result=reshape(HE.decryptFrac(c_sum),(real_N_rows,real_N_cols))
+#    result=reshape(HE.decryptFrac(col_mean(c_data, data_size)),(real_N_rows,real_N_cols))
+#    print("SHOULD BE:\n",n_col_mean,"\nRESULT:\n",result)
+#
+#    # row-wise sum:
+#    for i in range(1,N_cols):
+#        c_row_sum+=c_data << i
+#        shifted=shift(sup_data,-i)
+#        n_row_sum+=shifted
+#    n_row_mean=n_row_sum/N_cols
+#
+#    # msr:
+#    inner_msr=sup_data-n_row_mean-n_col_mean+array_row_mean(array_col_mean(sup_data, data_size), data_size)
+#    print(array_col_mean(inner_msr**2,data_size))
+#    print(array_row_mean(inner_msr**2,data_size))
+#    ref_cca=cca.ChengChurchAlgorithm()
+#    #print(sup_data)
+#    max_row,max_col=data_size[0]
+#    ref_msr=ref_cca._calculate_msr(sup_data,list(range(max_row)), list(range(max_col)))
+#
+#    print("##################################################################\nROW-WISE SUM:")
+#    #result=reshape(HE.decryptFrac(c_sum),(real_N_rows,real_N_cols))
+#    result=reshape(HE.decryptFrac(row_sum(c_data, data_size)),(real_N_rows,real_N_cols))
+#    print("SHOULD BE:\n",n_row_sum,"\nRESULT:\n",result)
+#    print("ERRORS:\n",result-n_row_sum)
+#
+#    print("##################################################################\nROW-WISE MEAN:")
+#    #result=reshape(HE.decryptFrac(c_sum),(real_N_rows,real_N_cols))
+#    result=reshape(HE.decryptFrac(row_mean(c_data, data_size)),(real_N_rows,real_N_cols))
+#    print("SHOULD BE:\n",n_row_mean,"\nRESULT:\n",result)
+#    print("ERRORS:\n",result-n_row_mean)
+#    #print([result[i] for i in range(len(result))])
+#
+#    print("##################################################################\nDATA MEAN:")
+#    result=reshape(HE.decryptFrac(data_mean(c_data, data_size)),(real_N_rows,real_N_cols))
+#    print("SHOULD BE:\n",array_row_mean(array_col_mean(sup_data, data_size), data_size),"\nRESULT:\n",result)
+#
+#    print("##################################################################\nMSR:")
+#    #result=reshape(HE.decryptFrac(c_sum),(real_N_rows,real_N_cols))
+#    result=reshape(HE.decryptFrac(calculate_msr(c_data, data_size)),(real_N_rows,real_N_cols))
+#    print("SHOULD BE:\n",ref_msr[0],"\nRESULT:\n",result)
+#    print("ERRORS:\n",result-ref_msr[0])
+#
+#
 
-    N_rows,N_cols=np.shape(data)
+    #TESTING ONES:
+    print("##################################################################\nONES:")
+    print("len8 ones{2:}:",ones(2,None,8))
+    print("len10 ones{:5}:",ones(None,5,10))
 
-    print("Data-Array:")
-    print(data)
-#    print("Array / 2:")
-#    print(data/2)
+    #TESTING LIST SHIFT:
+    no_ciphertexts=3
+    length=4
+    by_shift=1
+    plain_list=[np.array([rd.random() for i in range(length)]) for j in range(no_ciphertexts)]
+    list_data=[HE.encrypt(plain_sub) for plain_sub in plain_list]
+    shifted_by_sub=[sub_data<<1 for sub_data in list_data]
+    shifted_in_total=list_shift(HE,list_data, by_shift, length)
 
-    #Make bigger array with all rows, cols needed for shifting:
-    sup_data=np.array([[data[i,j] for j in range(-N_cols,N_cols)] for i in range(-N_rows,N_rows)])
-    real_N_rows=2*N_rows
-    real_N_cols=2*N_cols
-    data_size=((N_rows, N_cols), (real_N_rows, real_N_cols))
-    print("Data-Size:")
-    print(data_size)
-    print("With added rows, cols:")
-    print(sup_data)
-    #print("Converted to 1d:")
-    flat_sup_data=sup_data.flatten()
-    #print(flat_sup_array)
-    c_data = HE.encryptFrac(flat_sup_data) # Encrypts the plaintext ptxt_x and returns a PyCtxt
-    #c_half=c_data/[2 for i in range(real_N_rows*real_N_cols)]
-    #print("Cipher-Array / 2:")
-    #print(reshape(HE.decryptFrac(c_half), data_size[1]))
+    out_plain=[["%0.2f" % plain_sub[i] for i in range(length)] for plain_sub in plain_list]
+    out_shift_sub=[["%0.2f" % HE.decrypt(shifted_sub)[i] for i in range(length)] for shifted_sub in shifted_by_sub]
+    print(shifted_in_total)
+    out_shift_total=[["%0.2f" % HE.decrypt(shifted_sub)[i] for i in range(length)] for shifted_sub in shifted_in_total]
 
-
-    c_col_sum=c_data.copy()
-    c_row_sum=c_data.copy()
-    n_col_sum=sup_data.copy()
-    n_row_sum=sup_data.copy()
-#    print("Shift and sum:")
-#    print(c_data)
-
-    # testing shifts:
-    #c_sum=c_data.copy()
-    #test_shift=c_data << 1*real_N_cols
-    #test_shift=c_data << 2*real_N_cols
-    #c_sum+=test_shift
-
-    # col-wise sum,mean:
-    for i in range(1,N_rows):
-        c_col_sum+=c_data << real_N_cols*i
-        n_col_sum+=shift(sup_data,real_N_cols*i)
-    n_col_mean=n_col_sum/N_rows
-    print("##################################################################\nCOLUMN-WISE SUM:")
-    #result=reshape(HE.decryptFrac(c_sum),(real_N_rows,real_N_cols))
-    result=reshape(HE.decryptFrac(col_sum(c_data, data_size)),(real_N_rows,real_N_cols))
-    print("SHOULD BE:\n",n_col_sum,"\nRESULT:\n",result)
-
-    print("##################################################################\nCOLUMN-WISE MEAN:")
-    #result=reshape(HE.decryptFrac(c_sum),(real_N_rows,real_N_cols))
-    result=reshape(HE.decryptFrac(col_mean(c_data, data_size)),(real_N_rows,real_N_cols))
-    print("SHOULD BE:\n",n_col_mean,"\nRESULT:\n",result)
-
-    # row-wise sum:
-    for i in range(1,N_cols):
-        c_row_sum+=c_data << i
-        shifted=shift(sup_data,-i)
-        n_row_sum+=shifted
-    n_row_mean=n_row_sum/N_cols
-
-    # msr:
-    inner_msr=sup_data-n_row_mean-n_col_mean+array_row_mean(array_col_mean(sup_data, data_size), data_size)
-    print(array_col_mean(inner_msr**2,data_size))
-    print(array_row_mean(inner_msr**2,data_size))
-    ref_cca=cca.ChengChurchAlgorithm()
-    #print(sup_data)
-    max_row,max_col=data_size[0]
-    ref_msr=ref_cca._calculate_msr(sup_data,list(range(max_row)), list(range(max_col)))
-
-    print("##################################################################\nROW-WISE SUM:")
-    #result=reshape(HE.decryptFrac(c_sum),(real_N_rows,real_N_cols))
-    result=reshape(HE.decryptFrac(row_sum(c_data, data_size)),(real_N_rows,real_N_cols))
-    print("SHOULD BE:\n",n_row_sum,"\nRESULT:\n",result)
-    print("ERRORS:\n",result-n_row_sum)
-
-    print("##################################################################\nROW-WISE MEAN:")
-    #result=reshape(HE.decryptFrac(c_sum),(real_N_rows,real_N_cols))
-    result=reshape(HE.decryptFrac(row_mean(c_data, data_size)),(real_N_rows,real_N_cols))
-    print("SHOULD BE:\n",n_row_mean,"\nRESULT:\n",result)
-    print("ERRORS:\n",result-n_row_mean)
-    #print([result[i] for i in range(len(result))])
-
-    print("##################################################################\nDATA MEAN:")
-    result=reshape(HE.decryptFrac(data_mean(c_data, data_size)),(real_N_rows,real_N_cols))
-    print("SHOULD BE:\n",array_row_mean(array_col_mean(sup_data, data_size), data_size),"\nRESULT:\n",result)
-
-    print("##################################################################\nMSR:")
-    #result=reshape(HE.decryptFrac(c_sum),(real_N_rows,real_N_cols))
-    result=reshape(HE.decryptFrac(calculate_msr(c_data, data_size)),(real_N_rows,real_N_cols))
-    print("SHOULD BE:\n",ref_msr[0],"\nRESULT:\n",result)
-    print("ERRORS:\n",result-ref_msr[0])
-
-
-#    print("\nOLD ROW MEAN\n",n_row_mean,"\nNEW ROW MEAN\n",array_row_mean(sup_data,data_size))
-#    print("\nOLD COL MEAN\n",n_col_mean,"\nNEW COL MEAN\n",array_col_mean(sup_data,data_size))
-
-    ##  1. Mean
-    #c_mean = (ctxt_x + ctxt_y) / 2
-    ##  2. MSE
-    #c_mse_1 = ~((ctxt_x - c_mean)**2)
-    #c_mse_2 = (~(ctxt_y - c_mean)**2)
-    #c_mse = (c_mse_1 + c_mse_2)/ 3
-    ##  3. Cumulative sum
-    #c_mse += (c_mse << 1)
-    #c_mse += (c_mse << 2)  # element 0 contains the result
-    #print("->\tMean: ", c_mean)
-    #print("->\tMSE_1: ", c_mse_1)
-    #print("->\tMSE_2: ", c_mse_2)
-    #print("->\tMSE: ", c_mse)
-    #
+    print()
+    print("##################################################################\nLIST SHIFT:")
+    print("Example random data:               ",out_plain)
+    #print(shifted_by_sub)
+    print("Shifting of sub_arrays only:       ",out_shift_sub)
+    print("Shifting with boundary correction: ",out_shift_total)
