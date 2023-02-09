@@ -206,6 +206,8 @@ class ClacEncMSR:
             cipher_row_msr = self.row_mean(HE, ~cipher_square_residue, data_size)
             cipher_col_msr = self.col_mean(HE, ~cipher_square_residue, data_size)
             HE.rescale_to_next(cipher_msr)
+            HE.rescale_to_next(cipher_row_msr)
+            HE.rescale_to_next(cipher_col_msr)
 
         return cipher_msr, cipher_row_msr, cipher_col_msr
 
