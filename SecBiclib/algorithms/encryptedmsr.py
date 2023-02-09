@@ -1,19 +1,12 @@
+import Pyfhel
 import numpy as np
-from Pyfhel import Pyfhel
-from SecBiclib.algorithms import SecuredChengChurchAlgorithm
+import inspect
+src = inspect.getsource(Pyfhel)
 
 
 class ClacEncMSR:
 
-    def __init__(self, cipher_data, row_size, col_size, real_row_size, real_col_size, HE):
-        self.cipher_data = cipher_data
-        self.row_size = row_size
-        self.col_size = col_size
-        self.real_row_size = real_row_size
-        self.real_col_size = real_col_size
-        self.HE = HE
-        # self.array = array
-        # self.shape = shape
+    # def __init__(self):
 
     def enlarge(self, array):
         """Make larger array with all rows, cols needed for shifting"""
@@ -195,21 +188,26 @@ class ClacEncMSR:
             HE.rescale_to_next(cipher_data_mean)
         # MSR-Calculation:
         if isinstance(cipher_data, list):
-            cipher_residue, cipher_square_residue, cipher_msr = [], [], []
+            cipher_residue, cipher_square_residue, cipher_msr, cipher_row_msr, cipher_col_msr = [], [], [], [], []
             for i in range(len(cipher_data)):
                 cipher_residue.append(cipher_data[i] - cipher_row_mean[i] - cipher_col_mean[i] + cipher_data_mean[i])
                 cipher_square_residue.append(cipher_residue[i] ** 2)
                 HE.rescale_to_next(cipher_square_residue[i])
                 cipher_msr.append(self.data_mean(HE, ~cipher_square_residue[i], data_size))
+                cipher_row_msr.append(self.row_mean(HE, ~cipher_square_residue[i], data_size))
+                cipher_col_msr.append(self.col_mean(HE, ~cipher_square_residue[i], data_size))
+
 
         else:
             cipher_residue = cipher_data - cipher_row_mean - cipher_col_mean + cipher_data_mean
             cipher_square_residue = cipher_residue ** 2
             HE.rescale_to_next(cipher_square_residue)
             cipher_msr = self.data_mean(HE, ~cipher_square_residue, data_size)
+            cipher_row_msr = self.row_mean(HE, ~cipher_square_residue, data_size)
+            cipher_col_msr = self.col_mean(HE, ~cipher_square_residue, data_size)
             HE.rescale_to_next(cipher_msr)
 
-        return cipher_msr
+        return cipher_msr, cipher_row_msr, cipher_col_msr
 
 
 
