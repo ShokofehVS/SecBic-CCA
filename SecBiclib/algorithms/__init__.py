@@ -9,3 +9,6 @@
 
 from .cca import ChengChurchAlgorithm
 from .secca import SecuredChengChurchAlgorithm
+from .seccatest import SecuredChengChurchTestAlgorithm
+from .encryptedmsr import ClacEncMSR
+from .encryptedmsrcol import ClacEncMSRCol
