@@ -192,6 +192,7 @@ class ClacEncMSRCol:
                 cipher_col_square_residue.append(cipher_col_residue[i] ** 2)
                 HE.rescale_to_next(cipher_col_square_residue[i])
                 cipher_col_msr.append(self.col_mean(HE, ~cipher_col_square_residue[i], data_size))
+                HE.rescale_to_next(cipher_col_msr[i])
 
         else:
             cipher_col_residue = cipher_data_rows - cipher_row_mean - cipher_col_mean + cipher_data_mean
