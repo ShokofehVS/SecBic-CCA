@@ -165,7 +165,7 @@ class ClacEncMSRow:
 
         return mean
 
-    def calculate_msr_col_addition(self, HE, cipher_data, cipher_data_cols, data_size):
+    def calculate_msr_row_addition(self, HE, cipher_data, cipher_data_cols, data_size):
         """Calculate the mean squared residues of the rows and of the inverse of the rows
         for the node addition step homomorphically"""
         cipher_row_mean = self.row_mean(HE, cipher_data_cols, data_size)
@@ -190,12 +190,14 @@ class ClacEncMSRow:
             cipher_row_residue, cipher_row_square_residue, cipher_row_msr = [], [], []
             cipher_row_inverse_residue, cipher_row_inverse_square_residue, cipher_row_inverse_msr = [], [], []
             for i in range(len(cipher_data)):
-                cipher_row_residue.append(cipher_data_cols[i] - cipher_row_mean[i] - cipher_col_mean[i] + cipher_data_mean[i])
+                cipher_row_residue.append(cipher_data_cols[i] - cipher_row_mean[i] - cipher_col_mean[i]
+                                          + cipher_data_mean[i])
                 cipher_row_square_residue.append(cipher_row_residue[i] ** 2)
                 HE.rescale_to_next(cipher_row_square_residue[i])
                 cipher_row_msr.append(self.row_mean(HE, ~cipher_row_square_residue[i], data_size))
 
-                cipher_row_inverse_residue.append(- cipher_data_cols[i] + cipher_row_mean[i] - cipher_col_mean[i] + cipher_data_mean[i])
+                cipher_row_inverse_residue.append(-cipher_data_cols[i] + cipher_row_mean[i] - cipher_col_mean[i]
+                                                  + cipher_data_mean[i])
                 cipher_row_inverse_square_residue.append(cipher_row_inverse_residue[i] ** 2)
                 HE.rescale_to_next(cipher_row_inverse_square_residue[i])
                 cipher_row_inverse_msr.append(self.row_mean(HE, ~cipher_row_inverse_square_residue[i], data_size))
@@ -211,7 +213,7 @@ class ClacEncMSRow:
             cipher_row_inverse_square_residue = cipher_row_inverse_residue ** 2
             HE.rescale_to_next(cipher_row_inverse_square_residue)
             cipher_row_inverse_msr = self.row_mean(HE, ~cipher_row_inverse_square_residue, data_size)
-            HE.rescale_to_next(cipher_row_msr)
+            HE.rescale_to_next(cipher_row_inverse_msr)
 
         return cipher_row_msr, cipher_row_inverse_msr
 
