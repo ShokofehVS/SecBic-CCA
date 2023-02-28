@@ -167,19 +167,25 @@ class ClacEncMSR:
 
         return mean
 
-    def calculate_msr(self, HE, cipher_data, data_size):
+    def calculate_msr(self, HE, cipher_data, data_size, no_ciphertexts):
         """Calculate the mean squared residues of the rows, of the columns and of the full data matrix
         by homomorphic encryption"""
-        cipher_row_mean = self.row_mean(HE, cipher_data, data_size)
-        cipher_col_mean = self.col_mean(HE, cipher_data, data_size)
-        cipher_data_mean = self.data_mean(HE, cipher_data, data_size)
+        plaintext_inList = [self.reshape(cipher_data.flatten(), data_size) for j in range(no_ciphertexts)]
+        enlarged_plaintext, data_sizes = zip(*[self.enlarge(plain_sub) for plain_sub in plaintext_inList])
+        data_size_actual = data_sizes[0]
+        enc_plaintext_inList = [HE.encrypt(plain_sub.flatten()) for plain_sub in enlarged_plaintext]
+        target_ciphertext = enc_plaintext_inList[0].copy()
+
+        cipher_row_mean = self.row_mean(HE, target_ciphertext, data_size_actual)
+        cipher_col_mean = self.col_mean(HE, target_ciphertext, data_size_actual)
+        cipher_data_mean = self.data_mean(HE, target_ciphertext, data_size_actual)
         # Rescaling:
-        if isinstance(cipher_data, list):
-            for i in range(len(cipher_data)):
+        if isinstance(target_ciphertext, list):
+            for i in range(len(target_ciphertext)):
                 HE.rescale_to_next(cipher_row_mean[i])
                 HE.rescale_to_next(cipher_col_mean[i])
                 HE.rescale_to_next(cipher_data_mean[i])
-                HE.rescale_to_next(cipher_data[i])
+                HE.rescale_to_next(target_ciphertext[i])
 
         else:
             print("Rescaling single")
@@ -187,26 +193,26 @@ class ClacEncMSR:
             HE.rescale_to_next(cipher_col_mean)
             HE.rescale_to_next(cipher_data_mean)
         # MSR-Calculation:
-        if isinstance(cipher_data, list):
+        if isinstance(target_ciphertext, list):
             cipher_residue, cipher_square_residue, cipher_msr, cipher_row_msr, cipher_col_msr = [], [], [], [], []
-            for i in range(len(cipher_data)):
-                cipher_residue.append(cipher_data[i] - cipher_row_mean[i] - cipher_col_mean[i] + cipher_data_mean[i])
+            for i in range(len(target_ciphertext)):
+                cipher_residue.append(target_ciphertext[i] - cipher_row_mean[i] - cipher_col_mean[i] + cipher_data_mean[i])
                 cipher_square_residue.append(cipher_residue[i] ** 2)
                 HE.rescale_to_next(cipher_square_residue[i])
-                cipher_msr.append(self.data_mean(HE, ~cipher_square_residue[i], data_size))
-                cipher_row_msr.append(self.row_mean(HE, ~cipher_square_residue[i], data_size))
-                cipher_col_msr.append(self.col_mean(HE, ~cipher_square_residue[i], data_size))
+                cipher_msr.append(self.data_mean(HE, ~cipher_square_residue[i], data_size_actual))
+                cipher_row_msr.append(self.row_mean(HE, ~cipher_square_residue[i], data_size_actual))
+                cipher_col_msr.append(self.col_mean(HE, ~cipher_square_residue[i], data_size_actual))
                 HE.rescale_to_next(cipher_msr[i])
                 HE.rescale_to_next(cipher_row_msr[i])
                 HE.rescale_to_next(cipher_col_msr[i])
 
         else:
-            cipher_residue = cipher_data - cipher_row_mean - cipher_col_mean + cipher_data_mean
+            cipher_residue = target_ciphertext - cipher_row_mean - cipher_col_mean + cipher_data_mean
             cipher_square_residue = cipher_residue ** 2
             HE.rescale_to_next(cipher_square_residue)
-            cipher_msr = self.data_mean(HE, ~cipher_square_residue, data_size)
-            cipher_row_msr = self.row_mean(HE, ~cipher_square_residue, data_size)
-            cipher_col_msr = self.col_mean(HE, ~cipher_square_residue, data_size)
+            cipher_msr = self.data_mean(HE, ~cipher_square_residue, data_size_actual)
+            cipher_row_msr = self.row_mean(HE, ~cipher_square_residue, data_size_actual)
+            cipher_col_msr = self.col_mean(HE, ~cipher_square_residue, data_size_actual)
             HE.rescale_to_next(cipher_msr)
             HE.rescale_to_next(cipher_row_msr)
             HE.rescale_to_next(cipher_col_msr)
