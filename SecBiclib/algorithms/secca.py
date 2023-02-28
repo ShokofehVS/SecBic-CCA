@@ -38,11 +38,12 @@ class SecuredChengChurchAlgorithm(BaseBiclusteringAlgorithm):
     """
 
     def __init__(self, num_biclusters=100, msr_threshold=300, multiple_node_deletion_threshold=1.2,
-                 data_min_cols=100):
+                 data_min_cols=100, no_ciphertexts=2):
         self.num_biclusters = num_biclusters
         self.msr_threshold = msr_threshold
         self.multiple_node_deletion_threshold = multiple_node_deletion_threshold
         self.data_min_cols = data_min_cols
+        self.no_ciphertexts = no_ciphertexts
 
     def run(self, data):
         """Compute biclustering.
@@ -87,9 +88,9 @@ class SecuredChengChurchAlgorithm(BaseBiclusteringAlgorithm):
             rows = np.ones(num_rows, dtype=np.bool)
             cols = np.ones(num_cols, dtype=np.bool)
 
-            self._multiple_node_deletion(data, rows, cols, msr_thr, HE, enc_msr)
-            self._single_node_deletion(data, rows, cols, msr_thr, HE, enc_msr)
-            self._node_addition(data, rows, cols, HE, enc_msr, enc_msr_col, enc_msr_row)
+            self._multiple_node_deletion(data, rows, cols, msr_thr, HE, enc_msr, self.no_ciphertexts)
+            self._single_node_deletion(data, rows, cols, msr_thr, HE, enc_msr, self.no_ciphertexts )
+            self._node_addition(data, rows, cols, HE, enc_msr, enc_msr_col, enc_msr_row, self.no_ciphertexts)
 
             row_indices = np.nonzero(rows)[0]
             col_indices = np.nonzero(cols)[0]
@@ -107,15 +108,15 @@ class SecuredChengChurchAlgorithm(BaseBiclusteringAlgorithm):
 
         return Biclustering(biclusters)
 
-    def _single_node_deletion(self, data, rows, cols, msr_thr, HE, enc_msr):
+    def _single_node_deletion(self, data, rows, cols, msr_thr, HE, enc_msr, no_ciphertexts):
         """Performs the single row/column deletion step (this is a direct implementation of the Algorithm 1 described in
         the original paper)"""
         data_size = (len(rows), len(cols))
-        msr, row_msr, col_msr = enc_msr.calculate_msr(HE, data, data_size)
+        msr, row_msr, col_msr = enc_msr.calculate_msr(HE, data[rows][:, cols], data_size, no_ciphertexts)
 
         while msr > msr_thr:
             self._single_deletion(data, rows, cols, row_msr, col_msr)
-            msr, row_msr, col_msr = enc_msr.calculate_msr(HE, data, data_size)
+            msr, row_msr, col_msr = enc_msr.calculate_msr(HE, data[rows][:, cols], data_size, no_ciphertexts)
 
     def _single_deletion(self, data, rows, cols, row_msr, col_msr):
         """Deletes a row or column from the bicluster being computed."""
@@ -132,11 +133,11 @@ class SecuredChengChurchAlgorithm(BaseBiclusteringAlgorithm):
             col2remove = col_indices[col_max_msr]
             cols[col2remove] = False
 
-    def _multiple_node_deletion(self, data, rows, cols, msr_thr, HE, enc_msr):
+    def _multiple_node_deletion(self, data, rows, cols, msr_thr, HE, enc_msr, no_ciphertexts):
         """Performs the multiple row/column deletion step (this is a direct implementation of the Algorithm 2 described in
         the original paper)"""
         data_size = (len(rows), len(cols))
-        msr, row_msr, col_msr = enc_msr.calculate_msr(HE, data, data_size)
+        msr, row_msr, col_msr = enc_msr.calculate_msr(HE, data[rows][:, cols], data_size, no_ciphertexts)
 
         stop = True if msr <= msr_thr else False
 
@@ -150,13 +151,13 @@ class SecuredChengChurchAlgorithm(BaseBiclusteringAlgorithm):
 
             if len(cols) >= self.data_min_cols:
                 data_size_cols2removed = (len(rows), len(cols))
-                msr, row_msr, col_msr = enc_msr.calculate_msr(HE, data, data_size_cols2removed)
+                msr, row_msr, col_msr = enc_msr.calculate_msr(HE, data[rows][:, cols], data_size_cols2removed, no_ciphertexts)
                 col_indices = np.nonzero(cols)[0]
                 cols2remove = col_indices[np.where(col_msr > self.multiple_node_deletion_threshold * msr)]
                 cols[cols2remove] = False
 
             data_size_rows2removed = (len(rows), len(cols))
-            msr, row_msr, col_msr = enc_msr.calculate_msr(HE, data, data_size_rows2removed)
+            msr, row_msr, col_msr = enc_msr.calculate_msr(HE, data[rows][:, cols], data_size_rows2removed, no_ciphertexts)
 
             # Tests if the new MSR value is smaller than the acceptable MSR threshold.
             # Tests if no rows and no columns were removed during this iteration.
@@ -164,7 +165,7 @@ class SecuredChengChurchAlgorithm(BaseBiclusteringAlgorithm):
             if msr <= msr_thr or (np.all(rows == rows_old) and np.all(cols == cols_old)):
                 stop = True
 
-    def _node_addition(self, data, rows, cols, HE, enc_msr, enc_msr_col, enc_msr_row):
+    def _node_addition(self, data, rows, cols, HE, enc_msr, enc_msr_col, enc_msr_row, no_ciphertexts):
         """Performs the row/column addition step (this is a direct implementation of the Algorithm 3 described in
         the original paper)"""
         stop = False
@@ -173,13 +174,13 @@ class SecuredChengChurchAlgorithm(BaseBiclusteringAlgorithm):
             rows_old = np.copy(rows)
 
             data_size = (len(rows), len(cols))
-            msr, _, _ = enc_msr.calculate_msr(HE, data, data_size)
+            msr, _, _ = enc_msr.calculate_msr(HE, data[rows][:, cols], data_size, no_ciphertexts)
             col_msr = enc_msr_col.calculate_msr_col_addition(HE, data, data_size)
             cols2add = np.where(col_msr.all() <= msr.all())[0]
             cols[cols2add] = True
 
             data_size_cols2added = (len(rows), len(cols))
-            msr, _, _ = enc_msr.calculate_msr(HE, data, data_size_cols2added)
+            msr, _, _ = enc_msr.calculate_msr(HE, data[rows][:, cols], data_size_cols2added, no_ciphertexts)
             row_msr, row_inverse_msr = enc_msr_row.calculate_msr_row_addition(HE, data, data_size_cols2added)
             rows2add = np.where(np.logical_or(row_msr.all() <= msr.all(), row_inverse_msr.all() <= msr.all()))[0]
             rows[rows2add] = True
