@@ -175,13 +175,15 @@ class SecuredChengChurchAlgorithm(BaseBiclusteringAlgorithm):
 
             data_size = (len(rows), len(cols))
             msr, _, _ = enc_msr.calculate_msr(HE, data[rows][:, cols], data_size, no_ciphertexts)
-            col_msr = enc_msr_col.calculate_msr_col_addition(HE, data[rows][:, cols], data[rows], data_size, no_ciphertexts)
+            col_msr = enc_msr_col.calculate_msr_col_addition(HE, data[rows][:, cols], data[rows], data_size,
+                                                             no_ciphertexts)
             cols2add = np.where(col_msr.all() <= msr.all())[0]
             cols[cols2add] = True
 
             data_size_cols2added = (len(rows), len(cols))
             msr, _, _ = enc_msr.calculate_msr(HE, data[rows][:, cols], data_size_cols2added, no_ciphertexts)
-            row_msr, row_inverse_msr = enc_msr_row.calculate_msr_row_addition(HE, data, data_size_cols2added)
+            row_msr, row_inverse_msr = enc_msr_row.calculate_msr_row_addition(HE, data[rows][:, cols], data[:, cols],
+                                                                              data_size_cols2added, no_ciphertexts)
             rows2add = np.where(np.logical_or(row_msr.all() <= msr.all(), row_inverse_msr.all() <= msr.all()))[0]
             rows[rows2add] = True
 
