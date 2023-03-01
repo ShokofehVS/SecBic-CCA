@@ -175,7 +175,7 @@ class SecuredChengChurchAlgorithm(BaseBiclusteringAlgorithm):
 
             data_size = (len(rows), len(cols))
             msr, _, _ = enc_msr.calculate_msr(HE, data[rows][:, cols], data_size, no_ciphertexts)
-            col_msr = enc_msr_col.calculate_msr_col_addition(HE, data, data_size)
+            col_msr = enc_msr_col.calculate_msr_col_addition(HE, data[rows][:, cols], data[rows], data_size, no_ciphertexts)
             cols2add = np.where(col_msr.all() <= msr.all())[0]
             cols[cols2add] = True
 
