@@ -1,5 +1,4 @@
 import math
-
 import Pyfhel
 import numpy as np
 import inspect
@@ -8,11 +7,8 @@ src = inspect.getsource(Pyfhel)
 
 class ClacEncMSR:
 
-    # def __init__(self):
-
     def enlarge(self, array):
         """Make larger array with all rows, cols needed for shifting"""
-
         n_rows, n_cols = np.shape(array)
         sub_data = np.array([[array[i, j] for j in range(-n_cols, n_cols)] for i in range(-n_rows, n_rows)])
         real_n_rows = 2 * n_rows
@@ -66,14 +62,11 @@ class ClacEncMSR:
         copy_first = cipher_list[0].copy()
         c_ones_array = self._cipher_ones(HE, sub_len - by, None, sub_len)
 
-        # for i in range(len(cipher_list) - 1):
         for i in range(len(cipher_list)-1):
             # Shift of the single ciphertext
             cipher_list[i] = ~cipher_list[i] << by
             # Force the shifted single ciphertext entries
-            # remaining = cipher_list[i] * self._cipher_ones(HE, None, sub_len - by, sub_len)
             remaining = ~(cipher_list[i] * self._cipher_ones(HE, None, sub_len - by, sub_len))
-            """ print(self.get_scale(cipher_list[i]))"""
             # Make a copy of the next single ciphertext
             from_outside = cipher_list[i + 1].copy()
             # Shift this copy so that the values which will appear in
@@ -105,6 +98,7 @@ class ClacEncMSR:
             raise NotImplementedError("Not yet implemented returning ones array between both start and end value")
 
     def get_scale(self, cipher_data):
+        """Get scale of ciphertext"""
         if not isinstance(cipher_data, list):
             cipher_data = [cipher_data]
         scales = []
@@ -113,6 +107,7 @@ class ClacEncMSR:
             where = repr_str.find('scale_bits=')
             scales.append(int(repr_str[where + 11:where + 14].replace(",", "")))
         return scales
+
     def _col_sum(self, HE, cipher_data, data_size):
         """Sum of columns in the ciphertext"""
         n_rows = data_size[0][0]
@@ -179,9 +174,11 @@ class ClacEncMSR:
 
         return mean
 
-    def calculate_msr(self, HE, cipher_data, data_size, no_ciphertexts):
+    def calculate_msr(self, HE, cipher_data, no_ciphertexts):
         """Calculate the mean squared residues of the rows, of the columns and of the full data matrix
         by homomorphic encryption"""
+        data_size = cipher_data.shape
+
         if len(cipher_data.flatten()) > (HE.get_nSlots()):
             print("List Ciphertexts")
             chunk_col = math.ceil(data_size[1] / no_ciphertexts)
