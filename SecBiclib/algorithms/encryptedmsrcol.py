@@ -1,3 +1,5 @@
+import math
+
 import Pyfhel
 import numpy as np
 import inspect
@@ -8,7 +10,6 @@ class ClacEncMSRCol:
 
     def enlarge(self, array):
         """Make larger array with all rows, cols needed for shifting"""
-
         n_rows, n_cols = np.shape(array)
         sub_data = np.array([[array[i, j] for j in range(-n_cols, n_cols)] for i in range(-n_rows, n_rows)])
         real_n_rows = 2 * n_rows
@@ -62,25 +63,23 @@ class ClacEncMSRCol:
         copy_first = cipher_list[0].copy()
         c_ones_array = self._cipher_ones(HE, sub_len - by, None, sub_len)
 
-        for i in range(len(cipher_list) - 1):
+        for i in range(len(cipher_list)-1):
             # Shift of the single ciphertext
             cipher_list[i] = ~cipher_list[i] << by
             # Force the shifted single ciphertext entries
-            remaining = cipher_list[i] * self._cipher_ones(HE, None, sub_len - by, sub_len)
+            remaining = ~(cipher_list[i] * self._cipher_ones(HE, None, sub_len - by, sub_len))
             # Make a copy of the next single ciphertext
             from_outside = cipher_list[i + 1].copy()
             # Shift this copy so that the values which will appear in
-            from_outside = (~from_outside >> (sub_len - by)) * c_ones_array
+            from_outside = ~((~from_outside >> (sub_len - by)) * c_ones_array)
             # Add the values from next ciphertext to the first
             cipher_list[i] = remaining + from_outside
         # Do the same as above manually for the last ciphertext in the list,
         # with expansion values coming from the first ciphertext in the list:
-        cipher_list[len(cipher_list) - 1] = ~cipher_list[
-            # Do the shift of the single ciphertext
-            len(cipher_list) - 1] << by
+        cipher_list[len(cipher_list) - 1] = ~cipher_list[len(cipher_list) - 1] << by
         cipher_list[len(cipher_list) - 1] = \
-            cipher_list[len(cipher_list) - 1] * self._cipher_ones(HE, None, sub_len - by, sub_len) \
-            + (~copy_first >> (sub_len - by)) * self._cipher_ones(HE, sub_len - by, None, sub_len)
+            ~(cipher_list[len(cipher_list) - 1] * self._cipher_ones(HE, None, sub_len - by, sub_len)) \
+            + ~((~copy_first >> (sub_len - by)) * self._cipher_ones(HE, sub_len - by, None, sub_len))
 
         return cipher_list
 
@@ -99,10 +98,21 @@ class ClacEncMSRCol:
         else:
             raise NotImplementedError("Not yet implemented returning ones array between both start and end value")
 
+    def get_scale(self, cipher_data):
+        """Get scale of ciphertext"""
+        if not isinstance(cipher_data, list):
+            cipher_data = [cipher_data]
+        scales = []
+        for ciphertext in cipher_data:
+            repr_str = repr(ciphertext)
+            where = repr_str.find('scale_bits=')
+            scales.append(int(repr_str[where + 11:where + 14].replace(",", "")))
+        return scales
+
     def _col_sum(self, HE, cipher_data, data_size):
         """Sum of columns in the ciphertext"""
         n_rows = data_size[0][0]
-        real_n_cols = data_size[1][1]
+        real_n_cols = data_size[0][1]
         c_col_sum = cipher_data.copy()
         rescale = False
         for i in range(1, n_rows):
@@ -140,10 +150,10 @@ class ClacEncMSRCol:
         N_rows = data_size[0][0]
         if isinstance(cipher_data, list):
             c_col_sum = self._col_sum(HE, cipher_data, data_size)
-            mean = [c_col_sum[j] / [N_rows for i in range(data_size[1][0] * data_size[1][0])] for j in
+            mean = [c_col_sum[j] / [N_rows for i in range(data_size[0][0] * data_size[0][0])] for j in
                     range(len(cipher_data))]
         else:
-            mean = self._col_sum(HE, cipher_data, data_size) / [N_rows for i in range(data_size[1][0] * data_size[1][0])]
+            mean = self._col_sum(HE, cipher_data, data_size) / [N_rows for i in range(data_size[0][0] * data_size[0][0])]
 
         return mean
 
@@ -152,68 +162,83 @@ class ClacEncMSRCol:
         N_cols = data_size[0][1]
         if isinstance(cipher_data, list):
             c_row_sum = self._row_sum(HE, cipher_data, data_size)
-            mean = [c_row_sum[j] / [N_cols for i in range(data_size[1][0] * data_size[1][0])] for j in
+            mean = [c_row_sum[j] / [N_cols for i in range(data_size[0][0] * data_size[0][0])] for j in
                     range(len(cipher_data))]
         else:
-            mean = self._row_sum(HE, cipher_data, data_size) / [N_cols for i in range(data_size[1][0] * data_size[1][0])]
+            mean = self._row_sum(HE, cipher_data, data_size) / [N_cols for i in range(data_size[0][0] * data_size[0][0])]
 
         return mean
 
-    def data_mean(self, HE, cipher_data, data_size):
+    def data_mean(self, HE, row_mean, cipher_data, data_size):
         """Mean of data in the ciphertext"""
-        mean = self.col_mean(HE, self.row_mean(HE, cipher_data, data_size), data_size)
+        mean = self.col_mean(HE, row_mean, data_size)
 
         return mean
 
-    def calculate_msr_col_addition(self, HE, cipher_data, cipher_data_rows, data_size, no_ciphertexts):
+    def calculate_msr_col_addition(self, HE, cipher_data, cipher_data_rows, no_ciphertexts):
         """Calculate the mean squared residues of the columns for the node addition step homomorphically"""
-        plaintext_inList = [self.reshape(cipher_data.flatten(), data_size) for j in range(no_ciphertexts)]
-        plaintext_rows_inList = [self.reshape(cipher_data_rows.flatten(), data_size) for j in range(no_ciphertexts)]
+        data_size = cipher_data.shape
+        data_rows_size = cipher_data_rows.shape
+        chunk_col = math.ceil(data_size[1] / no_ciphertexts)
+        chunk_col4rows = math.ceil(data_rows_size[1] / no_ciphertexts)
 
-        enlarged_plaintext, data_sizes = zip(*[self.enlarge(plain_sub) for plain_sub in plaintext_inList])
-        enlarged_plaintext_rows, data_sizes = zip(*[self.enlarge(plain_sub_rows) for plain_sub_rows in
-                                                    plaintext_rows_inList])
+        if (len(cipher_data.flatten()) or len(cipher_data_rows.flatten())) > (HE.get_nSlots()):
+            print("List Ciphertexts")
+            plaintext_inList = [cipher_data[i:i + 1, j * chunk_col:(j + 1) * chunk_col]
+                                for j in range(no_ciphertexts) for i in range(data_size[0])]
+            plaintext_rows_inList = [cipher_data_rows[i:i + 1, j * chunk_col4rows:(j + 1) * chunk_col4rows]
+                                for j in range(no_ciphertexts) for i in range(data_rows_size[0])]
 
-        data_size_actual = data_sizes[0]
+            enlarged_plaintext, data_sizes = zip(*[self.enlarge(plain_sub) for plain_sub in plaintext_inList])
+            enlarged_plaintext_rows, data_rows_sizes = zip(*[self.enlarge(plain_sub_rows) for plain_sub_rows in plaintext_rows_inList])
+            data_size_actual = data_sizes[0]
+            data_rows_size_actual = data_rows_sizes[0]
 
-        enc_plaintext_inList = [HE.encrypt(plain_sub.flatten()) for plain_sub in enlarged_plaintext]
-        enc_plaintext_inList_rows = [HE.encrypt(plain_sub_rows.flatten()) for plain_sub_rows in enlarged_plaintext_rows]
-
-        target_ciphertext = enc_plaintext_inList[0].copy()
-        target_ciphertext_rows = enc_plaintext_inList_rows[0].copy()
-
-        cipher_row_mean = self.row_mean(HE, target_ciphertext, data_size_actual)
-        cipher_col_mean = self.col_mean(HE, target_ciphertext_rows, data_size_actual)
-        cipher_data_mean = self.data_mean(HE, target_ciphertext, data_size_actual)
-        # Rescaling:
-        if isinstance(target_ciphertext, list):
-            for i in range(len(target_ciphertext)):
-                HE.rescale_to_next(cipher_row_mean[i])
-                HE.rescale_to_next(cipher_col_mean[i])
-                HE.rescale_to_next(cipher_data_mean[i])
-                HE.rescale_to_next(target_ciphertext[i])
-                HE.rescale_to_next(target_ciphertext_rows[i])
+            ciphertext = [HE.encrypt(plain_sub.flatten()) for plain_sub in plaintext_inList]
+            ciphertext_rows = [HE.encrypt(plain_sub_rows.flatten()) for plain_sub_rows in plaintext_rows_inList]
 
         else:
-            print("Rescaling single")
-            HE.rescale_to_next(cipher_row_mean)
-            HE.rescale_to_next(cipher_col_mean)
-            HE.rescale_to_next(cipher_data_mean)
+            print("Single ciphertext")
+            plaintext_inList = [self.reshape(cipher_data.flatten(), data_size)]
+            plaintext_rows_inList = [self.reshape(cipher_data_rows.flatten(), data_rows_size)]
+
+            enlarged_plaintext, data_sizes = zip(*[self.enlarge(plain_sub) for plain_sub in plaintext_inList])
+            enlarged_plaintext_rows, data_rows_sizes = zip(*[self.enlarge(plain_sub_rows) for plain_sub_rows in
+                                                             plaintext_rows_inList])
+            data_size_actual = data_sizes[0]
+            data_rows_size_actual = data_rows_sizes[0]
+
+            enc_plaintext_inList = [HE.encrypt(plain_sub.flatten()) for plain_sub in plaintext_inList]
+            enc_plaintext_inList_rows = [HE.encrypt(plain_sub_rows.flatten()) for plain_sub_rows in
+                                         plaintext_rows_inList]
+
+            ciphertext = enc_plaintext_inList[0].copy()
+            ciphertext_rows = enc_plaintext_inList_rows[0].copy()
+
+        # Mean value calculation
+        cipher_row_mean = self.row_mean(HE, ciphertext, data_size_actual)
+        cipher_col_mean = self.col_mean(HE, ciphertext_rows, data_rows_size_actual)
+        cipher_data_mean = self.data_mean(HE, cipher_row_mean, ciphertext, data_size_actual)
+
         # MSR-Calculation:
-        if isinstance(target_ciphertext, list):
+        if isinstance(ciphertext, list):
             cipher_col_residue, cipher_col_square_residue, cipher_col_msr = [], [], []
-            for i in range(len(target_ciphertext)):
-                cipher_col_residue.append(target_ciphertext_rows[i] - cipher_row_mean[i] - cipher_col_mean[i] + cipher_data_mean[i])
+            for i in range(len(ciphertext_rows)):
+                cipher_col_residue.append(ciphertext_rows[i] - cipher_row_mean[i] - cipher_col_mean[i] + cipher_data_mean[i])
+                HE.rescale_to_next(cipher_col_residue[i])
                 cipher_col_square_residue.append(cipher_col_residue[i] ** 2)
                 HE.rescale_to_next(cipher_col_square_residue[i])
-                cipher_col_msr.append(self.col_mean(HE, ~cipher_col_square_residue[i], data_size_actual))
+                cipher_col_msr.append(self.col_mean(HE, ~cipher_col_square_residue[i], data_rows_size_actual))
                 HE.rescale_to_next(cipher_col_msr[i])
 
         else:
-            cipher_col_residue = target_ciphertext_rows - cipher_row_mean - cipher_col_mean + cipher_data_mean
+            HE.rescale_to_next(cipher_row_mean)
+            HE.rescale_to_next(cipher_col_mean)
+            HE.rescale_to_next(cipher_data_mean)
+            cipher_col_residue = ciphertext_rows - cipher_row_mean - cipher_col_mean + cipher_data_mean
             cipher_col_square_residue = cipher_col_residue ** 2
             HE.rescale_to_next(cipher_col_square_residue)
-            cipher_col_msr = self.col_mean(HE, ~cipher_col_square_residue, data_size_actual)
+            cipher_col_msr = self.col_mean(HE, ~cipher_col_square_residue, data_rows_size_actual)
             HE.rescale_to_next(cipher_col_msr)
 
         return cipher_col_msr
