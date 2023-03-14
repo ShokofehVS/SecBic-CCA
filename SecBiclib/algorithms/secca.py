@@ -84,8 +84,8 @@ class SecuredChengChurchAlgorithm(BaseBiclusteringAlgorithm):
 
         biclusters = []
         for i in range(self.num_biclusters):
-            rows = np.ones(num_rows, dtype=np.bool)
-            cols = np.ones(num_cols, dtype=np.bool)
+            rows = np.ones(num_rows, dtype=bool)
+            cols = np.ones(num_cols, dtype=bool)
 
             self._multiple_node_deletion(data, rows, cols, msr_thr, HE, enc_msr, self.no_ciphertexts)
             self._single_node_deletion(data, rows, cols, msr_thr, HE, enc_msr, self.no_ciphertexts)
