@@ -106,6 +106,7 @@ class ClacEncMSR:
             repr_str = repr(ciphertext)
             where = repr_str.find('scale_bits=')
             scales.append(int(repr_str[where + 11:where + 14].replace(",", "")))
+
         return scales
 
     def _col_sum(self, HE, cipher_data, data_size):
@@ -118,7 +119,6 @@ class ClacEncMSR:
                 for j in range(len(cipher_data)):
                     shifted = self.shift(HE, cipher_data, n_cols * i, data_size)
                     c_col_sum[i] += ~shifted[i]
-
             else:
                 c_col_sum += self.shift(HE, cipher_data, n_cols * i, data_size)
 
@@ -132,15 +132,12 @@ class ClacEncMSR:
         for i in range(1, n_cols):
             if isinstance(cipher_data, list):
                 shifted = self.shift(HE, cipher_data, i, data_size)
-                for i in range(len(cipher_data)):
-                    c_row_sum[i] += ~shifted[i]
+                for j in range(len(cipher_data)):
+                    c_row_sum[j] += ~shifted[j]
             else:
-                c_row_sum += self.shift(HE, cipher_data, i, data_size)
-                rotated_sum = c_row_sum.copy()
-                for j in range(n_cols - 1):
-                    rotated_sum = c_row_sum + HE.rotate(rotated_sum, -(n_element+1))
+                c_row_sum += cipher_data << i
 
-        return rotated_sum
+        return c_row_sum
 
     def col_mean(self, HE, cipher_data, data_size):
         """Mean of cols in the ciphertext"""
@@ -151,7 +148,9 @@ class ClacEncMSR:
                     range(len(cipher_data))]
         else:
             mean = self._col_sum(HE, cipher_data, data_size) / [N_rows for i in range(data_size[1])]
-            rotated_mean = mean + HE.rotate(mean, -data_size[1], True)
+            rotated_mean = mean.copy()
+            for j in range(N_rows - 1):
+                rotated_mean = mean + HE.rotate(rotated_mean, -data_size[1], True)
 
         return rotated_mean
 
@@ -164,29 +163,30 @@ class ClacEncMSR:
                     range(len(cipher_data))]
         else:
             mean = self._row_sum(HE, cipher_data, data_size) / [N_cols for i in range(data_size[0] * data_size[1])]
+            plain = [1 if i%N_cols == 0 else 0 for i in range(data_size[0] * data_size[1])]
+            mean = mean * plain
+            rotated_mean = mean.copy()
+            for j in range(N_cols - 1):
+                rotated_mean = mean + HE.rotate(rotated_mean, -1, True)
 
-        return mean
+        return rotated_mean
 
     def data_mean(self, HE, row_mean, cipher_data, data_size):
         """Mean of data in the ciphertext"""
-        mean = self.col_mean(HE, row_mean, data_size)
-
-        n_elements = data_size[0]*data_size[1]
-        for i in range(n_elements - 1):
-            mean += HE.rotate(mean, -1)
+        if isinstance(cipher_data, list):
+            mean = self.col_mean(HE, row_mean, data_size)
+        else:
+            n_elements = data_size[0] * data_size[1]
+            sum_data = HE.cumul_add(cipher_data, True)
+            mean = sum_data / [n_elements for i in range(data_size[0] * data_size[1])]
 
         return mean
 
-
     def calculate_msr(self, HE, cipher_data, no_ciphertexts):
-        """Calculate the mean squar ed residues of the rows, of the columns and of the full data matrix
+        """Calculate the mean square ed residues of the rows, of the columns and of the full data matrix
         by homomorphic encryption"""
-        num_rows, num_cols = 2, 3
-        n_elements = num_rows * num_cols
-        np.random.seed(42)  # Fixed seed for reproducibility
-        cipher_data = np.random.randint(0, 5, size=(num_rows, num_cols))  # Generate sample data
-
         data_size = cipher_data.shape
+        n_elements = data_size[0] * data_size[1]
 
         if len(cipher_data.flatten()) > (HE.get_nSlots()):
             print("List Ciphertexts")
@@ -256,7 +256,7 @@ class ClacEncMSR:
 
         else:
             decrypted_msr = HE.decrypt(cipher_msr)[0]
-            decrypted_msr_row = HE.decrypt(cipher_row_msr)[:data_size[0]]
+            decrypted_msr_row = HE.decrypt(cipher_row_msr)[:n_elements:data_size[1]]
             decrypted_msr_col = HE.decrypt(cipher_col_msr)[:data_size[1]]
 
         return decrypted_msr, decrypted_msr_row, decrypted_msr_col
