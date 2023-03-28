@@ -1,3 +1,4 @@
+import itertools
 import math
 import Pyfhel
 import numpy as np
@@ -106,7 +107,7 @@ class ClacEncMSR:
                     c_col_sum = [c_col_sum[j] + rotation[j] for j in range(len(cipher_data))]
 
                 else:
-                    c_col_sum = [c_col_sum[j] + HE.rotate(rotation[j], n_cols * i) for j in range(len(cipher_data))]
+                    c_col_sum = [c_col_sum[j] + HE.rotate(rotation[j], n_cols) for j in range(len(cipher_data))]
 
         else:
             for i in range(1, n_rows):
@@ -198,8 +199,9 @@ class ClacEncMSR:
         print("calculate_msr")
         data_size = cipher_data.shape
         n_elements = data_size[0] * data_size[1]
+        no_ciphertexts = 2
 
-        if len(cipher_data.flatten()) > (HE.get_nSlots()):
+        if len(cipher_data.flatten()) < (HE.get_nSlots()):
             print("List Ciphertexts")
             chunk_col = math.ceil(data_size[0] / no_ciphertexts)
             plaintext_inList = [cipher_data[j * chunk_col:(j + 1) * chunk_col, :] for j in range(no_ciphertexts)]
@@ -255,8 +257,14 @@ class ClacEncMSR:
         if isinstance(ciphertext, list):
             list_msr = [HE.decrypt(cipher_msr[i]) for i in range(len(ciphertext))]
             decrypted_msr = [sum(msr) for msr in zip(*list_msr)][0] / no_ciphertexts
-            decrypted_msr_row = [HE.decrypt(cipher_row_msr[i])[:n_elements:data_size[1]] for i in range(len(ciphertext))]
-            decrypted_msr_col = [HE.decrypt(cipher_col_msr[i]) for i in range(len(ciphertext))]
+
+            list_msr_row = [HE.decrypt(cipher_row_msr[i])[:data_size_actual[0] * data_size_actual[1]:data_size_actual[1]]
+                            for i in range(len(ciphertext))]
+            decrypted_msr_row = np.concatenate(([list_msr_row[i] for i in range(len(ciphertext))]))
+
+            list_msr_col = [HE.decrypt(cipher_col_msr[i])[:data_size_actual[1]] for i in range(len(ciphertext))]
+            decrypted_msr_col = np.sum(list_msr_col[i] for i in range(len(ciphertext))) / no_ciphertexts
+
 
         else:
             decrypted_msr = HE.decrypt(cipher_msr)[0]
