@@ -199,12 +199,18 @@ class ClacEncMSR:
         print("calculate_msr")
         data_size = cipher_data.shape
         n_elements = data_size[0] * data_size[1]
-        no_ciphertexts = 2
 
-        if len(cipher_data.flatten()) < (HE.get_nSlots()):
+        if len(cipher_data.flatten()) > (HE.get_nSlots()):
             print("List Ciphertexts")
             chunk_col = math.ceil(data_size[0] / no_ciphertexts)
             plaintext_inList = [cipher_data[j * chunk_col:(j + 1) * chunk_col, :] for j in range(no_ciphertexts)]
+            for i in range(len(plaintext_inList)):
+                if plaintext_inList[i].shape[0] < chunk_col:
+                    plaintext_inList[i] = np.append\
+                        (plaintext_inList[i], np.zeros((chunk_col - plaintext_inList[i].shape[0],data_size[1])), axis=0)
+                else:
+                    pass
+
             data_size_actual = (chunk_col, data_size[1])
             ciphertext = [HE.encrypt(plain_sub.flatten()) for plain_sub in plaintext_inList]
 
@@ -260,7 +266,7 @@ class ClacEncMSR:
 
             list_msr_row = [HE.decrypt(cipher_row_msr[i])[:data_size_actual[0] * data_size_actual[1]:data_size_actual[1]]
                             for i in range(len(ciphertext))]
-            decrypted_msr_row = np.concatenate(([list_msr_row[i] for i in range(len(ciphertext))]))
+            decrypted_msr_row = np.concatenate(([list_msr_row[i] for i in range(len(ciphertext))]))[:data_size[0]]
 
             list_msr_col = [HE.decrypt(cipher_col_msr[i])[:data_size_actual[1]] for i in range(len(ciphertext))]
             decrypted_msr_col = np.sum(list_msr_col[i] for i in range(len(ciphertext))) / no_ciphertexts
