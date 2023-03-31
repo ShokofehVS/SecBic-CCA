@@ -144,12 +144,15 @@ class ClacEncMSRCol:
             mean = [c_col_sum[j] / [N_rows for i in range(data_size[1])] for j in
                          range(len(cipher_data))]
 
+            # For finding residues, repeated values are added
             rotated_mean = mean.copy()
             for j in range(N_rows - 1):
                 rotated_mean = [mean[i] + HE.rotate(rotated_mean[i], -data_size[1], True) for i in range(len(cipher_data))]
 
         else:
             mean = self._col_sum(HE, cipher_data, data_size) / [N_rows for i in range(data_size[1])]
+
+            # For finding residues, repeated values are added
             rotated_mean = mean.copy()
             for j in range(N_rows - 1):
                 rotated_mean = mean + HE.rotate(rotated_mean, -data_size[1], True)
@@ -159,10 +162,14 @@ class ClacEncMSRCol:
     def row_mean(self, HE, cipher_data, data_size):
         """Mean of rows in the ciphertext"""
         N_cols = data_size[1]
+
+        # Check if storing an input data in lists is needed
         if isinstance(cipher_data, list):
             c_row_sum = self._row_sum(HE, cipher_data, data_size)
             mean = [c_row_sum[j] / [N_cols for i in range(data_size[0] * data_size[1])] for j in
                             range(len(cipher_data))]
+
+            # For finding residues, repeated values are added
             plain = [1 if i % N_cols == 0 else 0 for i in range(data_size[0] * data_size[1])]
             mean = [mean[i] * plain for i in range(len(cipher_data))]
             rotated_mean = mean.copy()
@@ -171,6 +178,8 @@ class ClacEncMSRCol:
 
         else:
             mean = self._row_sum(HE, cipher_data, data_size) / [N_cols for i in range(data_size[0] * data_size[1])]
+
+            # For finding residues, repeated values are added
             plain = [1 if i%N_cols == 0 else 0 for i in range(data_size[0] * data_size[1])]
             mean = mean * plain
             rotated_mean = mean.copy()
@@ -183,6 +192,7 @@ class ClacEncMSRCol:
         """Mean of data in the ciphertext"""
         n_elements = data_size[0] * data_size[1]
 
+        # Check if storing an input data in lists is needed
         if isinstance(cipher_data, list):
             sum_data = [HE.cumul_add(cipher_data[i], True) for i in range(len(cipher_data))]
             mean = [sum_data[i] / [n_elements for j in range(data_size[0] * data_size[1])]
@@ -197,19 +207,26 @@ class ClacEncMSRCol:
     def calculate_msr_col_addition(self, HE, cipher_data, cipher_data_rows, no_ciphertexts):
         """Calculate the mean squared residues of the columns for the node addition step homomorphically"""
         print("calculate_msr_col_addition")
+        # Get the size of data, and data_cols
         data_size = cipher_data.shape
         data_rows_size = cipher_data_rows.shape
         n_elements = data_size[0] * data_size[1]
+
+        # Find the size of each chunk according to the no_ciphertexts
         chunk_col = math.ceil(data_size[0] / no_ciphertexts)
         chunk_col4rows = math.ceil(data_rows_size[0] / no_ciphertexts)
 
+        # Check if storing an input data in lists is needed
+        # 1. first conditions when both data and data_col's sizes are above number of ciphertext's slot
         if (len(cipher_data.flatten()) > (HE.get_nSlots()) and len(cipher_data_rows.flatten()) > (HE.get_nSlots())):
             print("List Ciphertexts")
+            # Chunk the data and data_rows according to no_ciphertexts and chunk sizes
             plaintext_inList = [cipher_data[j * chunk_col:(j + 1) * chunk_col, ]
                                 for j in range(no_ciphertexts)]
             plaintext_rows_inList = [cipher_data_rows[j * chunk_col4rows:(j + 1) * chunk_col4rows, ]
                                      for j in range(no_ciphertexts)]
 
+            # Add zeros to the end of data to have balance sizes in rows
             for i in range(len(plaintext_inList)):
                 if plaintext_inList[i].shape[0] < chunk_col:
                     plaintext_inList[i] = np.append \
@@ -218,9 +235,11 @@ class ClacEncMSRCol:
                 else:
                     pass
 
+            # Actual size of data according to splitting into no_ciphertexts
             data_size_actual = (chunk_col, data_size[1])
             ciphertext = [HE.encrypt(plain_sub.flatten()) for plain_sub in plaintext_inList]
 
+            # Add zeros to the end of data_row to have balance sizes in rows
             for i in range(len(plaintext_rows_inList)):
                 if plaintext_rows_inList[i].shape[0] < chunk_col4rows:
                     plaintext_rows_inList[i] = np.append \
@@ -229,9 +248,11 @@ class ClacEncMSRCol:
                 else:
                     pass
 
+            # Actual size of data_row according to splitting into no_ciphertexts
             data_rows_size_actual = (chunk_col, data_rows_size[1])
             ciphertext_rows = [HE.encrypt(plain_sub_rows.flatten()) for plain_sub_rows in plaintext_rows_inList]
 
+        # 2. second conditions when data's size is above number of ciphertext's slot (inner computations are similar)
         elif len(cipher_data.flatten()) > (HE.get_nSlots()):
             print("List Ciphertexts")
             plaintext_inList = [cipher_data[j * chunk_col:(j + 1) * chunk_col, ]
@@ -251,6 +272,7 @@ class ClacEncMSRCol:
             data_rows_size_actual = data_rows_size
             ciphertext_rows = HE.encrypt(cipher_data_rows.flatten())
 
+        # 3. third conditions when data_row's size is above number of ciphertext's slot (inner computations are similar)
         elif len(cipher_data_rows.flatten()) > (HE.get_nSlots()):
             print("List Ciphertexts")
             plaintext_rows_inList = [cipher_data_rows[j * chunk_col4rows:(j + 1) * chunk_col4rows, ]
@@ -271,6 +293,8 @@ class ClacEncMSRCol:
             data_size_actual = data_size
             ciphertext = HE.encrypt(cipher_data.flatten())
 
+        # 4. fourth conditions when non of them has size above number of ciphertext's slot
+        # (inner computations are similar)
         else:
             print("Single ciphertext")
             data_size_actual = data_size
@@ -283,7 +307,7 @@ class ClacEncMSRCol:
         cipher_col_mean = self.col_mean(HE, ciphertext_rows, data_rows_size_actual)
         cipher_data_mean = self.data_mean(HE, ciphertext, data_size_actual)
 
-        # Rescaling:
+        # Check which of data or/and data_col are in list to rescale means
         if isinstance(ciphertext, list) and isinstance(ciphertext_rows, list):
             for i in range(len(ciphertext)):
                 HE.rescale_to_next(cipher_row_mean[i])
@@ -308,6 +332,7 @@ class ClacEncMSRCol:
             HE.rescale_to_next(cipher_data_mean)
 
         # MSR-Calculation:
+        # 1. first conditions when both data and data_col's sizes are above number of ciphertext's slot
         if isinstance(ciphertext, list) and isinstance(ciphertext_rows, list):
             cipher_col_residue, cipher_col_square_residue, cipher_col_msr = [], [], []
             for i in range(len(ciphertext_rows)):
@@ -318,6 +343,7 @@ class ClacEncMSRCol:
                 cipher_col_msr.append(self.col_mean(HE, ~cipher_col_square_residue[i], data_rows_size_actual))
                 HE.rescale_to_next(cipher_col_msr[i])
 
+        # 2. second conditions when data's size is above number of ciphertext's slot (inner computations are similar)
         elif isinstance(ciphertext, list):
             cipher_col_residue, cipher_col_square_residue, cipher_col_msr = [], [], []
             for i in range(len(ciphertext)):
@@ -328,6 +354,7 @@ class ClacEncMSRCol:
                 cipher_col_msr.append(self.col_mean(HE, ~cipher_col_square_residue[i], data_rows_size_actual))
                 HE.rescale_to_next(cipher_col_msr[i])
 
+        # 3. third conditions when data_col's size is above number of ciphertext's slot (inner computations are similar)
         elif isinstance(ciphertext_rows, list):
             cipher_col_residue, cipher_col_square_residue, cipher_col_msr = [], [], []
             for i in range(len(ciphertext_rows)):
@@ -338,6 +365,8 @@ class ClacEncMSRCol:
                 cipher_col_msr.append(self.col_mean(HE, ~cipher_col_square_residue[i], data_rows_size_actual))
                 HE.rescale_to_next(cipher_col_msr[i])
 
+        # 4. fourth conditions when non of them has size above number of ciphertext's slot
+        # (inner computations are similar)
         else:
             cipher_col_residue = ciphertext_rows - cipher_row_mean - cipher_col_mean + cipher_data_mean
             cipher_col_square_residue = cipher_col_residue ** 2
@@ -345,11 +374,14 @@ class ClacEncMSRCol:
             cipher_col_msr = self.col_mean(HE, ~cipher_col_square_residue, data_rows_size_actual)
             HE.rescale_to_next(cipher_col_msr)
 
-            # For MPC Connection
+            # For MPC Connection (decrypting results)
+            # 1. first conditions when both data and/or data_row's sizes are above number of ciphertext's slot
         if isinstance(cipher_col_msr, list):
             list_msr_col = [HE.decrypt(cipher_col_msr[i])[:data_size_actual[1]] for i in range(len(cipher_col_msr))]
             decrypted_col_msr = np.sum(list_msr_col[i] for i in range(len(cipher_col_msr))) / no_ciphertexts
 
+        # 4. fourth conditions when non of them has size above number of ciphertext's slot
+        # (inner computations are similar)
         else:
             decrypted_col_msr = HE.decrypt(cipher_col_msr)[:data_size[1]]
 
