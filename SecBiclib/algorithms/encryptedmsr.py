@@ -138,17 +138,22 @@ class ClacEncMSR:
     def col_mean(self, HE, cipher_data, data_size):
         """Mean of cols in the ciphertext"""
         N_rows = data_size[0]
+
+        # Check if storing an input data in lists is needed
         if isinstance(cipher_data, list):
             c_col_sum = self._col_sum(HE, cipher_data, data_size)
             mean = [c_col_sum[j] / [N_rows for i in range(data_size[1])] for j in
                          range(len(cipher_data))]
 
+            # For finding residues, repeated values are added
             rotated_mean = mean.copy()
             for j in range(N_rows - 1):
                 rotated_mean = [mean[i] + HE.rotate(rotated_mean[i], -data_size[1], True) for i in range(len(cipher_data))]
 
         else:
             mean = self._col_sum(HE, cipher_data, data_size) / [N_rows for i in range(data_size[1])]
+
+            # For finding residues, repeated values are added
             rotated_mean = mean.copy()
             for j in range(N_rows - 1):
                 rotated_mean = mean + HE.rotate(rotated_mean, -data_size[1], True)
@@ -158,10 +163,14 @@ class ClacEncMSR:
     def row_mean(self, HE, cipher_data, data_size):
         """Mean of rows in the ciphertext"""
         N_cols = data_size[1]
+
+        # Check if storing an input data in lists is needed
         if isinstance(cipher_data, list):
             c_row_sum = self._row_sum(HE, cipher_data, data_size)
             mean = [c_row_sum[j] / [N_cols for i in range(data_size[0] * data_size[1])] for j in
                             range(len(cipher_data))]
+
+            # For finding residues, repeated values are added
             plain = [1 if i % N_cols == 0 else 0 for i in range(data_size[0] * data_size[1])]
             mean = [mean[i] * plain for i in range(len(cipher_data))]
             rotated_mean = mean.copy()
@@ -170,6 +179,8 @@ class ClacEncMSR:
 
         else:
             mean = self._row_sum(HE, cipher_data, data_size) / [N_cols for i in range(data_size[0] * data_size[1])]
+
+            # For finding residues, repeated values are added
             plain = [1 if i%N_cols == 0 else 0 for i in range(data_size[0] * data_size[1])]
             mean = mean * plain
             rotated_mean = mean.copy()
@@ -182,6 +193,7 @@ class ClacEncMSR:
         """Mean of data in the ciphertext"""
         n_elements = data_size[0] * data_size[1]
 
+        # Check if storing an input data in lists is needed
         if isinstance(cipher_data, list):
             sum_data = [HE.cumul_add(cipher_data[i], True) for i in range(len(cipher_data))]
             mean = [sum_data[i] / [n_elements for j in range(data_size[0] * data_size[1])]
@@ -197,13 +209,22 @@ class ClacEncMSR:
         """Calculate the mean squared residues of the rows, of the columns and of the full data matrix
         by homomorphic encryption"""
         print("calculate_msr")
+
+        # Get the size of data, and data_cols
         data_size = cipher_data.shape
         n_elements = data_size[0] * data_size[1]
 
+        # Finding the maximum no_ciphertexts (*To be tested more*)
+        no_ciphertexts = math.ceil(len(cipher_data.flatten()) / HE.get_nSlots())
+
+        # Check if storing an input data in lists is needed
         if len(cipher_data.flatten()) > (HE.get_nSlots()):
             print("List Ciphertexts")
+            # Find the size of each chunk according to the no_ciphertexts
             chunk_col = math.ceil(data_size[0] / no_ciphertexts)
             plaintext_inList = [cipher_data[j * chunk_col:(j + 1) * chunk_col, :] for j in range(no_ciphertexts)]
+
+            # Add zeros to the end of data to have balance sizes in rows
             for i in range(len(plaintext_inList)):
                 if plaintext_inList[i].shape[0] < chunk_col:
                     plaintext_inList[i] = np.append\
@@ -211,6 +232,7 @@ class ClacEncMSR:
                 else:
                     pass
 
+            # Actual size of data according to splitting into no_ciphertexts
             data_size_actual = (chunk_col, data_size[1])
             ciphertext = [HE.encrypt(plain_sub.flatten()) for plain_sub in plaintext_inList]
 
@@ -224,7 +246,7 @@ class ClacEncMSR:
         cipher_col_mean = self.col_mean(HE, ciphertext, data_size_actual)
         cipher_data_mean = self.data_mean(HE, ciphertext, data_size_actual)
 
-        # Rescaling:
+        # Rescaling for list of ciphertexts or single ciphertext
         if isinstance(ciphertext, list):
             for i in range(len(ciphertext)):
                 HE.rescale_to_next(cipher_row_mean[i])
@@ -236,7 +258,7 @@ class ClacEncMSR:
             HE.rescale_to_next(cipher_col_mean)
             HE.rescale_to_next(cipher_data_mean)
 
-        # MSR-Calculation:
+        # MSR-Calculation for list of ciphertexts or single ciphertext
         if isinstance(ciphertext, list):
             cipher_residue, cipher_square_residue, cipher_msr, cipher_row_msr, cipher_col_msr = [], [], [], [], []
             for i in range(len(ciphertext)):
@@ -259,7 +281,7 @@ class ClacEncMSR:
             HE.rescale_to_next(cipher_row_msr)
             HE.rescale_to_next(cipher_col_msr)
 
-        # For MPC Connection
+        # For MPC Connection (decrypting results)
         if isinstance(ciphertext, list):
             list_msr = [HE.decrypt(cipher_msr[i]) for i in range(len(ciphertext))]
             decrypted_msr = [sum(msr) for msr in zip(*list_msr)][0] / no_ciphertexts
