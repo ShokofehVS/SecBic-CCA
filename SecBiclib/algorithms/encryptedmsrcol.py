@@ -321,7 +321,7 @@ class ClacEncMSRCol:
             HE.rescale_to_next(cipher_col_mean)
 
         elif isinstance(ciphertext_rows, list):
-            for i in range(len(ciphertext)):
+            for i in range(len(ciphertext_rows)):
                 HE.rescale_to_next(cipher_col_mean[i])
             HE.rescale_to_next(cipher_row_mean)
             HE.rescale_to_next(cipher_data_mean)
@@ -377,12 +377,12 @@ class ClacEncMSRCol:
             # For MPC Connection (decrypting results)
             # 1. first conditions when both data and/or data_row's sizes are above number of ciphertext's slot
         if isinstance(cipher_col_msr, list):
-            list_msr_col = [HE.decrypt(cipher_col_msr[i])[:data_size_actual[1]] for i in range(len(cipher_col_msr))]
+            list_msr_col = [HE.decrypt(cipher_col_msr[i])[:data_rows_size_actual[1]] for i in range(len(cipher_col_msr))]
             decrypted_col_msr = np.sum(list_msr_col[i] for i in range(len(cipher_col_msr))) / no_ciphertexts
 
         # 4. fourth conditions when non of them has size above number of ciphertext's slot
         # (inner computations are similar)
         else:
-            decrypted_col_msr = HE.decrypt(cipher_col_msr)[:data_size[1]]
+            decrypted_col_msr = HE.decrypt(cipher_col_msr)[:data_rows_size[1]]
 
         return decrypted_col_msr
