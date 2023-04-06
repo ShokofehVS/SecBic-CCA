@@ -60,8 +60,7 @@ class ChengChurchAlgorithm(BaseBiclusteringAlgorithm):
         min_value = np.min(data)
         max_value = np.max(data)
 
-        msr_thr = (((max_value - min_value) ** 2) / 12) * 0.005 if self.msr_threshold == 'estimate' else self.msr_threshold
-
+        msr_thr = 300
         biclusters = []
 
         for i in range(self.num_biclusters):
