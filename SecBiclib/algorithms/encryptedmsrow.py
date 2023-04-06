@@ -219,6 +219,7 @@ class ClacEncMSRow:
         data_size = cipher_data.shape
         data_cols_size = cipher_data_cols.shape
         n_elements = data_size[0] * data_size[1]
+        n_cols_elements = data_cols_size[0] * data_cols_size[1]
 
         # Find the size of each chunk according to the no_ciphertexts
         chunk_col = math.ceil(data_size[0] / no_ciphertexts)
@@ -226,7 +227,7 @@ class ClacEncMSRow:
 
         # Check if storing an input data in lists is needed
         # 1. first conditions when both data and data_col's sizes are above number of ciphertext's slot
-        if (len(cipher_data.flatten()) < (HE.get_nSlots()) and len(cipher_data_cols.flatten()) < (HE.get_nSlots())):
+        if (len(cipher_data.flatten()) > (HE.get_nSlots()) and len(cipher_data_cols.flatten()) > (HE.get_nSlots())):
             print("List Ciphertexts")
             # Chunk the data and data_col according to no_ciphertexts and chunk sizes
             plaintext_inList = [cipher_data[j * chunk_col:(j + 1) * chunk_col, ]
@@ -340,14 +341,14 @@ class ClacEncMSRow:
 
         elif isinstance(ciphertext, list):
             for i in range(len(ciphertext)):
-                HE.rescale_to_next(cipher_row_mean[i])
+                HE.rescale_to_next(cipher_col_mean[i])
                 HE.rescale_to_next(cipher_data_mean[i])
-            HE.rescale_to_next(cipher_col_mean)
+            HE.rescale_to_next(cipher_row_mean)
 
         elif isinstance(ciphertext_cols, list):
-            for i in range(len(ciphertext)):
-                HE.rescale_to_next(cipher_col_mean[i])
-            HE.rescale_to_next(cipher_row_mean)
+            for i in range(len(ciphertext_cols)):
+                HE.rescale_to_next(cipher_row_mean[i])
+            HE.rescale_to_next(cipher_col_mean)
             HE.rescale_to_next(cipher_data_mean)
 
         else:
@@ -396,7 +397,7 @@ class ClacEncMSRow:
         elif isinstance(ciphertext_cols, list):
             cipher_row_residue, cipher_row_square_residue, cipher_row_msr = [], [], []
             cipher_row_inverse_residue, cipher_row_inverse_square_residue, cipher_row_inverse_msr = [], [], []
-            for i in range(len(ciphertext)):
+            for i in range(len(ciphertext_cols)):
                 cipher_row_residue.append(ciphertext_cols[i] - cipher_row_mean[i] - cipher_col_mean
                                           + cipher_data_mean)
                 cipher_row_square_residue.append(cipher_row_residue[i] ** 2)
@@ -430,20 +431,20 @@ class ClacEncMSRow:
         if isinstance(ciphertext, list) or isinstance(ciphertext_cols, list):
             list_msr_row = [
                 HE.decrypt(cipher_row_msr[i])[:data_cols_size[0] * data_cols_size[1]:data_cols_size[1]]
-                for i in range(len(ciphertext_cols))]
+                for i in range(no_ciphertexts)]
             decrypted_row_msr = np.concatenate(([list_msr_row[i]
-                                                 for i in range(len(ciphertext_cols))]))[:data_cols_size[0]]
+                                                 for i in range(no_ciphertexts)]))[:data_cols_size[0]]
 
             list_msr_row_inverse = [
-                HE.decrypt(cipher_row_inverse_msr[i])[:data_size_actual[0] * data_size_actual[1]:data_size_actual[1]]
-                for i in range(len(ciphertext))]
+                HE.decrypt(cipher_row_inverse_msr[i])[:data_cols_size[0] * data_cols_size[1]:data_cols_size[1]]
+                for i in range(no_ciphertexts)]
             decrypted_row_inverse_msr = np.concatenate(([list_msr_row_inverse[i]
-                                                         for i in range(len(ciphertext))]))[:data_size[0]]
+                                                         for i in range(no_ciphertexts)]))[:data_cols_size[0]]
 
         # 4. fourth conditions when non of them has size above number of ciphertext's slot
         # (inner computations are similar)
         else:
-            decrypted_row_msr = HE.decrypt(cipher_row_msr)[:n_elements:data_size[1]]
-            decrypted_row_inverse_msr = HE.decrypt(cipher_row_inverse_msr)[:n_elements:data_size[1]]
+            decrypted_row_msr = HE.decrypt(cipher_row_msr)[:n_cols_elements:data_cols_size[1]]
+            decrypted_row_inverse_msr = HE.decrypt(cipher_row_inverse_msr)[:n_cols_elements:data_cols_size[1]]
 
         return decrypted_row_msr, decrypted_row_inverse_msr
