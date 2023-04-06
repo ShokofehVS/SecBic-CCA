@@ -1,0 +1,139 @@
+\documentclass[a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[ngerman]{babel}
+\usepackage{amsmath}
+\usepackage{cleveref}
+\usepackage{tabularx}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage{booktabs}
+\usepackage{marvosym}
+\usepackage{graphicx,caption}
+\usepackage{csquotes}
+\usepackage{siunitx}
+\usepackage[lighttt]{lmodern}
+\usepackage{minted}
+\usepackage{xcolor} % to access the named colour LightGray
+\usepackage{subcaption}
+\usepackage[a4paper, total={6in, 9in}]{geometry}
+\usepackage[automark]{scrlayer-scrpage}
+\usepackage[T1]{fontenc} 
+\usepackage{wrapfig}
+
+%\usemintedstyle{friendly}
+\usemintedstyle{colorful}
+
+\definecolor{LightGray}{gray}{0.9}
+\usepackage{caption}
+
+\renewcommand\theFancyVerbLine{\small\arabic{FancyVerbLine}}
+
+\newcommand{\vhdl}[1]{\mintinline[bgcolor=LightGray, fontsize=\small]{VHDL}{#1}}
+\newcommand{\vhdlmagenta}[1]{{\ttfamily\colorbox[HTML]{e6e6e6}{\color[HTML]{ba0066}\textbf{\small #1}}}}
+
+\definecolor{LightGray}{gray}{0.9}
+\newcommand{\python}[1]{\mintinline[bgcolor=LightGray, fontsize=\small]{Python}{#1}}
+\newcommand{\pyclass}[1]{{\ttfamily\colorbox[HTML]{e6e6e6}{\color[HTML]{ba0066}\textbf{\small #1}}}}
+\newcommand{\pymethod}[1]{{\ttfamily\colorbox[HTML]{e6e6e6}{\color[HTML]{0066ba}\textbf{\small #1}}}}
+\newcommand{\pyreturn}[1]{{\ttfamily\colorbox[HTML]{e6e6e6}{\color[HTML]{ba0066}\textbf{\small #1}}}}
+\newcommand{\textbool}[1]{{\color[HTML]{008700}\textbf{\small #1}}}
+
+
+\pagestyle{scrheadings}
+\ihead{Julian Rausch}
+ \chead{\textbf{SecBic-CCA Documentation}\\\texttt{cipher\_operations}}
+ \ohead{26.01.2023}
+ \cfoot{\pagemark}
+
+\captionsetup{font={footnotesize, sf}, labelfont=bf}
+
+\graphicspath{{./images/}}
+
+\crefname{figure}{abb.}{abb.}
+\Crefname{figure}{Abb.}{Abb.}
+    
+\DeclareSIUnit\voltpp{V_{pp}}
+
+\begin{document}
+\section*{Methods of \texttt{cipher\_operations} module}
+For testing and for the pre- and postprocessing of data, there are a few methods that work on numpy-arrays. Some mimic the behaviour of their ciphertext counterparts. Both array operations and ciphertext operations are documented below:
+\subsubsection*{Array operations}
+\sffamily
+\begin{tabular}{r|p{3cm}|p{8cm}}
+Method&Arguments&Description\\
+\hline
+\pymethod{enlarge(}&&\\
+&array&2D \python{numpy.ndarray} of shape (rows,cols), Input Data\\
+\pymethod{)}&&\\
+&\multicolumn{1}{r|}{Returns:}&\pyreturn{sup\_data}, extended 2D \python{numpy.ndarray} of shape (2*rows,2*cols), filled up with four times the Input data\\
+&&\pyreturn{data\_size}, \python{tuple} of two \python{tuple}, containing the size of the original data array and of the extended array\\
+\hline\pymethod{reshape(}&&\\
+&array&1D ('flat') \python{numpy.ndarray}, e.g. output of ciphertext decryption\\
+&shape&\python{tuple} or \python{list} with wanted output shape (rows,cols)\\
+\pymethod{)}&&\\
+&\multicolumn{1}{r|}{Returns:}&\pyreturn{sub\_array\_2d}, 2D \python{numpy.ndarray} with given shape, that holds the first rows*cols entries of \python{array}\\
+\hline\pymethod{array\_shift(}&&\\
+&array&2D \python{numpy.ndarray} of shape (rows,cols)\\
+&by&\python{integer} of how many entries the array should be shifted by (positive: to the right, negative: to the left)\\
+\pymethod{)}&&\\
+&\multicolumn{1}{r|}{Returns:}&\pyreturn{shifted}, 2D \python{numpy.ndarray} of shape (rows,cols), shifted array\\
+\hline\pymethod{array\_col\_mean(}&&\\
+&array&2D \python{numpy.ndarray} of shape (rows,cols)\\
+&data\_size&\python{tuple} of \python{tuple}, consisting of the real size of data (data\_rows,data\_cols) and the size of the extended array (rows,cols) containing it\\
+\pymethod{)}&&\\
+&\multicolumn{1}{r|}{Returns:}&\pyreturn{col\_mean}, 2D \python{numpy.ndarray} of shape (rows,cols), holding in each column the column-wise mean value of the data\\
+\hline\pymethod{array\_row\_mean(}&&\\
+&array&2D \python{numpy.ndarray} of shape (rows,cols)\\
+&data\_size&\python{tuple} of \python{tuple}, consisting of the real size of data (data\_rows,data\_cols) and the size of the extended array (rows,cols) containing it\\
+\pymethod{)}&&\\
+&\multicolumn{1}{r|}{Returns:}&\pyreturn{row\_mean}, 2D \python{numpy.ndarray} of shape (rows,cols), holding in each row the row-wise mean value of the data (correct results only in sub-array of size \python{data_size[0]}=(data\_rows,data\_cols) to mimic the behaviour of the equivalent ciphertext operation)\\
+\end{tabular}
+\rmfamily
+\subsubsection*{Ciphertext operations}
+For most operations on ciphertext the size of the data array is needed. As typically the encrypted data is created by using the \pymethod{enlarge} method on a 2d-data array, which returns the size of the data and extended array as a tuple of tuples, this can directly be used as an input argument for the ciphertext operations.
+For all ciphertext operations the data is held in a Ciphertext, encrypted from this extended and then flattened array (e.g. using \python{numpy.ndarray.flatten()}).\\
+Also an instance of the class \python{Pyfhel.Pyfhel()} is needed as an input for most methods to perform the underlying ciphertext handling on. This must be initialized with correct parameters before accessing any method using it.\vspace{0.5cm}\\
+\sffamily
+\begin{tabular}{r|p{3cm}|p{8cm}}
+Method&Arguments&Description\\
+\hline
+\pymethod{col\_mean(}&&\\
+&HE&Instance of \python{Pyfhel.Pyfhel()}\\
+&cipher\_data&\python{Pyfhel.PyCtxt}, encrypted data\\
+&data\_size&\python{tuple} of \python{tuple}, consisting of the real size of data (data\_rows,data\_cols) and the size of the extended array (rows,cols) containing it before encryption\\
+\pymethod{)}&&\\
+&\multicolumn{1}{r|}{Returns:}&\pyreturn{col\_mean}, \python{Pyfhel.PyCtxt}, holding in each column the column-wise mean value of the data (correct results only in sub-array (after decryption and reshaping of size \python{data_size[0]})\\
+\hline
+\pymethod{row\_mean(}&&\\
+&HE&Instance of \python{Pyfhel.Pyfhel()}\\
+&cipher\_data&\python{Pyfhel.PyCtxt}, encrypted data\\
+&data\_size&\python{tuple} of \python{tuple}, consisting of the real size of data (data\_rows,data\_cols) and the size of the extended array (rows,cols) containing it before encryption\\
+\pymethod{)}&&\\
+&\multicolumn{1}{r|}{Returns:}&\pyreturn{row\_mean}, \python{Pyfhel.PyCtxt}, holding in each row the row-wise mean value of the data (correct results only in sub-array (after decryption and reshaping of size \python{data_size[0]})\\
+\hline
+\pymethod{data\_mean(}&&\\
+&HE&Instance of \python{Pyfhel.Pyfhel()}\\
+&cipher\_data&\python{Pyfhel.PyCtxt}, encrypted data\\
+&data\_size&\python{tuple} of \python{tuple}, consisting of the real size of data (data\_rows,data\_cols) and the size of the extended array (rows,cols) containing it before encryption\\
+\pymethod{)}&&\\
+&\multicolumn{1}{r|}{Returns:}&\pyreturn{data\_mean}, \python{Pyfhel.PyCtxt}, holding in each entry the mean value of the data (correct results only in sub-array (after decryption and reshaping of size \python{data_size[0]})\\
+\end{tabular}\\
+\begin{tabular}{r|p{3cm}|p{8cm}}
+\pymethod{calculate\_msr(}&&\\
+&HE&Instance of \python{Pyfhel.Pyfhel()}\\
+&cipher\_data&\python{Pyfhel.PyCtxt}, encrypted data\\
+&data\_size&\python{tuple} of \python{tuple}, consisting of the real size of data (data\_rows,data\_cols) and the size of the extended array (rows,cols) containing it before encryption\\
+&refill=\textbool{False}&\python{bool}, flag for possible future feature to fill up the whole array with the msr value\\
+\pymethod{)}&&\\
+&\multicolumn{1}{r|}{Returns:}&\pyreturn{data\_mean}, \python{Pyfhel.PyCtxt}, holding in the first entry the MSR value of the data (correct result only in first entry, \textbf{Not yet implemented:} with refill=\textbool{True} fills the whole array with msr value)\\
+\hline
+\pymethod{shift(}&&\\
+&HE&Instance of \python{Pyfhel.Pyfhel()}\\
+&cipher\_data&\python{Pyfhel.PyCtxt} or \python{list} of \python{Pyfhel.PyCtxt}, encrypted data (list case for multiple ciphertext handling)\\
+&by&\python{integer}, of how many entries the array should be shifted by (to the left)\\
+&data\_size&\python{tuple} of \python{tuple}, consisting of the real size of data (data\_rows,data\_cols) and the size of the extended array (rows,cols) containing it before encryption. For a list of ciphertexts, this holds the size of the subarray in each ciphertext.\\
+\pymethod{)}&&\\
+&\multicolumn{1}{r|}{Returns:}&\pyreturn{shifted\_data}, \python{Pyfhel.PyCtxt} or \python{list} of \python{Pyfhel.PyCtxt}, encrypted data shifted (to the left) by the value of argument \python{by} (for a single ciphertext input this is equivalent to the \python{<<} operator from Pyfhel)\\
+\end{tabular}
+
+\end{document}

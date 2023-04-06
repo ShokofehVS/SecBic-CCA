@@ -9,3 +9,7 @@
 
 from .cca import ChengChurchAlgorithm
 from .secca import SecuredChengChurchAlgorithm
+from .encryptedmsr import ClacEncMSR
+from .encryptedmsrcol import ClacEncMSRCol
+from .encryptedmsrow import ClacEncMSRow
+
