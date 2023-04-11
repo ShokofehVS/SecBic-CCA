@@ -6,4 +6,3 @@
     This file is part of SecBic-CCA.
 
 """
-__import__('pkg_resources').declare_namespace(__name__)
