@@ -6,4 +6,7 @@
     This file is part of SecBic-CCA.
 
 """
-__import__('pkg_resources').declare_namespace(__name__)
+
+from .subspace import clustering_error
+from .subspace import relative_non_intersecting_area
+from .csi import csi
