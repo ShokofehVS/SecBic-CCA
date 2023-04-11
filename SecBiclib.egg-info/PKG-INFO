@@ -1,9 +1,0 @@
-Metadata-Version: 2.1
-Name: SecBiclib
-Version: 0.1
-Summary: Library of biclustering algorithms, evaluation measures and dataset
-Home-page: https://github.com/ShokofehVS/SecBic-CCA
-Author: ...
-Author-email: ...
-License: MIT
-License-File: LICENSE
