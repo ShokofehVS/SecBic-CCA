@@ -53,7 +53,7 @@ To measure the similarity of encrypted biclusters with non-encrypted version, we
 
 To run the sample implementation of Cheng and Church algorithm:
 
-	   > python3 SecBiclib/scripts/secured_cheng_church_yeast.py
+	   > python3 SecBiclib/scripts/cheng_church_yeast.py
 
 ```python
 
