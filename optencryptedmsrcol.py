@@ -68,8 +68,7 @@ def calculate_opt_msr_col_addition(HE, cipher_data, cipher_data_rows):
     for i in range(len(ciphertext_rows)):
         HE.rescale_to_next(col_msr[i])
 
-    dec_col_msr = decr_cols(col_msr)[:data_rows_size[1]]
+    dec_col_msr = decr_cols(col_msr)[0][:data_rows_size[1]]
 
     return dec_col_msr
-
 
