@@ -70,8 +70,8 @@ def calculate_opt_msr_row_addition(HE, cipher_data, cipher_data_cols):
     row_msr = opt_row_mean(HE, cipher_square_residue, data_cols_size)
     row_inverse_msr = opt_row_mean(HE, cipher_square_residue_inverse, data_cols_size)
 
-    dec_row_msr = decr_round(row_msr)[:data_cols_size[0]]
-    dec_row_inverse_msr = decr_round(row_inverse_msr)[:data_cols_size[0]]
+    dec_row_msr = decr_round(row_msr)[:data_size[0]]
+    dec_row_inverse_msr = decr_round(row_inverse_msr)[:data_size[0]]
 
     return dec_row_msr, dec_row_inverse_msr
 
