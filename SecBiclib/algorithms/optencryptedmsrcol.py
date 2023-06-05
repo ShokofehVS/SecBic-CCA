@@ -11,10 +11,11 @@ def opt_col_data_mean(HE, ciphertext, data_size):
     copy_col_sum = col_sum.copy()
     data_sum = copy_col_sum.sum()
     col_mean = np.array(
-        [copy_col_sum[j] / [data_size[0] for i in range(data_size[1])] for j in range(len(copy_col_sum))])
+        [copy_col_sum[j] / [data_size[0] for i in range(data_size[0] * data_size[1])] for j in range(len(copy_col_sum))])
     data_mean = data_sum / n_elements
 
     return data_mean, col_mean
+
 
 def opt_row_mean(HE, cipher_data, data_size):
     # sum and mean of rows
@@ -24,8 +25,8 @@ def opt_row_mean(HE, cipher_data, data_size):
 
     return row_mean
 
-def calculate_opt_msr_col_addition(HE, cipher_data, cipher_data_rows):
 
+def calculate_opt_msr_col_addition(HE, cipher_data, cipher_data_rows):
     data_size = cipher_data.shape
     data_rows_size = cipher_data_rows.shape
 
@@ -34,7 +35,6 @@ def calculate_opt_msr_col_addition(HE, cipher_data, cipher_data_rows):
     decr_round = lambda c: np.round(HE.decrypt(c), int(np.log10(1 / tol)))
     decr_cols = lambda c_cols: np.round(
         np.asarray([HE.decrypt(c) for c in c_cols]), int(np.log10(1 / tol))).T
-
     ciphertext = np.array([HE.encrypt(cipher_data[:, i]) for i in range(data_size[1])])
     ciphertext_rows = np.array([HE.encrypt(cipher_data_rows[:, i]) for i in range(data_rows_size[1])])
 
@@ -54,19 +54,21 @@ def calculate_opt_msr_col_addition(HE, cipher_data, cipher_data_rows):
         HE.rescale_to_next(col_row_mean[i])
 
     # MSR-Calculation for node addition
-    cipher_residue = ciphertext_rows - row_mean - col_row_mean + data_mean
+    cipher_residue = ciphertext_rows - col_row_mean
+    for i in range(len(ciphertext_rows)):
+        cipher_residue[i] = cipher_residue[i] - row_mean + data_mean
+
     cipher_square_residue = cipher_residue ** 2
     for i in range(len(ciphertext_rows)):
         HE.rescale_to_next(cipher_square_residue[i])
         HE.relinearize(cipher_square_residue[i])
 
-    col_msr = opt_col_data_mean(HE, cipher_square_residue, data_rows_size)
+    msr, col_msr = opt_col_data_mean(HE, cipher_square_residue, data_rows_size)
 
     for i in range(len(ciphertext_rows)):
         HE.rescale_to_next(col_msr[i])
 
-    dec_col_msr = decr_cols(col_msr)[:data_rows_size[1]]
+    dec_col_msr = decr_cols(col_msr)[0][:data_rows_size[1]]
 
     return dec_col_msr
-
 

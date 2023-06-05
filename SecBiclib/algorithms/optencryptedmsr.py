@@ -1,100 +1,58 @@
-import itertools
-import math
 import Pyfhel
 import numpy as np
 import inspect
 src = inspect.getsource(Pyfhel)
 
 
-class ClacOptEncMSR:
-    def col_mean(self, HE, cipher_data, data_size):
-        # sum and mean of columns
-        col_sum = sum(cipher_data)
-        copy_col_sum = col_sum.copy()
-        col_mean = copy_col_sum / [data_size[0] for i in range(data_size[1])]
+def calculate_opt_msr(HE, cipher_data):
 
-        # For finding residues, repeated values are added
-        rotated_mean = col_mean.copy()
-        for j in range(data_size[0] - 1):
-            rotated_mean = col_mean + HE.rotate(rotated_mean, -data_size[1], True)
+    data_size = cipher_data.shape
+    n_elements = data_size[0] * data_size[1]
+    tol = 1e-2
+    decr_round = lambda c: np.round(HE.decrypt(c), int(np.log10(1 / tol)))
+    decr_cols = lambda c_cols: np.round(
+        np.asarray([HE.decrypt(c) for c in c_cols]), int(np.log10(1 / tol))).T
 
-        return rotated_mean
+    # encrypt data --> One column per ciphertext
+    c_data = np.array([HE.encrypt(cipher_data[:, i]) for i in range(data_size[1])])
 
-    def row_mean(self, HE, cipher_data, data_size):
-        # sum and mean of rows
-        row_sum = sum(cipher_data)
-        copy_row_sum = row_sum.copy()
-        row_mean = copy_row_sum / [data_size[1] for i in range(data_size[0])]
+    # sum for each row --> sum all ciphertexts
+    c_row_sum = sum(c_data)
 
-        # For finding residues, repeated values are added
-        plain = [1 if i % data_size[1] == 0 else 0 for i in range(data_size[0] * data_size[1])]
-        row_mean = row_mean * plain
-        rotated_mean = row_mean.copy()
-        for j in range(data_size[1] - 1):
-            rotated_mean = row_mean + HE.rotate(rotated_mean, -1, True)
+    # sum for each column --> sum all elements on each ciphertext
+    c_col_sum = np.array([HE.cumul_add(c, in_new_ctxt=True) for c in c_data])
 
-        return rotated_mean
+    # sum for all elements --> sum all row/col sums
+    c_all_sum = c_col_sum.sum()
 
-    def data_mean(self, HE, cipher_data, data_size):
-        n_elements = data_size[0] * data_size[1]
+    # Square residues (non-normalized)
+    res = c_data * n_elements - c_row_sum * data_size[0] - c_col_sum * data_size[1] + c_all_sum
+    sq_res = res ** 2
+    for i in range(len(sq_res)):
+        HE.rescale_to_next(sq_res[i])
+        HE.relinearize(sq_res[i])
 
-        sum_data = [HE.cumul_add(cipher_data[i], True) for i in range(len(cipher_data))]
-        mean = [sum_data[i] / [n_elements for j in range(data_size[0] * data_size[1])]
-                for i in range(len(cipher_data))]
+    c_msr_row_p1 = sum(sq_res) / data_size[1]
+    c_msr_row_p2 = c_msr_row_p1 / n_elements
+    c_msr_row = c_msr_row_p2 / n_elements
+    HE.rescale_to_next(c_msr_row)
+    dec_row_msr = decr_round(c_msr_row)[:data_size[0]]
 
-        return mean
+    c_msr_sum = np.array([HE.cumul_add(c, in_new_ctxt=True) for c in sq_res])
+    c_msr_col_p1 = c_msr_sum / [data_size[0]]
+    c_msr_col_p2 = c_msr_col_p1 / [n_elements]
+    c_msr_col = c_msr_col_p2 / [n_elements]
+    for i in range(len(c_msr_col)):
+        HE.rescale_to_next(c_msr_col[i])
+    dec_col_msr = (decr_cols(c_msr_col)[0][:data_size[1]]).T
 
-    def calculate_msr(self, HE, cipher_data):
-        n_rows, n_cols = 2, 3
-        n_elements = n_rows * n_cols
-        np.random.seed(42)  # Fixed seed for reproducibility
-        data = np.random.randint(0, 5, size=(n_rows, n_cols))
-        data_size = cipher_data.shape
-        n_elements = data_size[0] * data_size[1]
+    c_msr_p1 = c_msr_sum.sum() / (n_elements)
+    c_msr_p2 = c_msr_p1 / (n_elements)
+    c_msr = c_msr_p2 / (n_elements)
+    HE.rescale_to_next(c_msr)
+    dec_msr = decr_round(c_msr)[0]
 
-        enc_cipher_col = [HE.encrypt(cipher_data[:, i]) for i in range(data_size[1])]
-        enc_cipher_row = [HE.encrypt(cipher_data[i,:]) for i in range(data_size[0])]
-        # Finding the maximum no_ciphertexts (*To be tested more*)
-        no_ciphertexts = math.ceil(len(cipher_data.flatten()) / HE.get_nSlots())
-
-        # Chunking data according to no_ciphertexts
-        chunk_col = math.ceil(data_size[0] / no_ciphertexts)
-        plaintext_inList = [cipher_data[j * chunk_col:(j + 1) * chunk_col, :] for j in range(no_ciphertexts)]
-
-        # Actual size of data according to splitting into no_ciphertexts
-        data_size_actual = (chunk_col, data_size[1])
-        ciphertext = [HE.encrypt(plain_sub.flatten()) for plain_sub in plaintext_inList]
-
-        cipher_row_mean = self.row_mean(HE, enc_cipher_col, data_size)
-        cipher_col_mean = self.col_mean(HE, enc_cipher_row, data_size)
-        cipher_data_mean = self.data_mean(HE, ciphertext, data_size_actual)
-
-        # Rescaling for list of ciphertexts or single ciphertext
-        for i in range(len(ciphertext)):
-            HE.rescale_to_next(cipher_data_mean[i])
-        HE.rescale_to_next(cipher_row_mean)
-        HE.rescale_to_next(cipher_col_mean)
-
-        # MSR-Calculation for list of ciphertexts or single ciphertext
-        for i in range(len(ciphertext)):
-            cipher_residue, cipher_square_residue, cipher_msr, cipher_row_msr, cipher_col_msr = [], [], [], [], []
-            cipher_residue.append(ciphertext[i] - cipher_row_mean - cipher_col_mean + cipher_data_mean[i])
-            cipher_square_residue.append(~(~cipher_residue[i] ** 2))
-            HE.rescale_to_next(cipher_square_residue[i])
-            cipher_row_msr.append(self.row_mean(HE, ~cipher_square_residue[i], data_size_actual))
-            cipher_col_msr.append(self.col_mean(HE, ~cipher_square_residue[i], data_size_actual))
-            cipher_msr.append(self.data_mean(HE, ~cipher_square_residue[i], data_size_actual))
-
-        # For MPC Connection (decrypting results)
-        list_msr = [HE.decrypt(cipher_msr[i]) for i in range(len(ciphertext))]
-        decrypted_msr = [sum(msr) for msr in zip(*list_msr)][0] / no_ciphertexts
-        decrypted_msr_row = HE.decrypt(cipher_row_msr)[:n_elements:data_size[1]]
-        decrypted_msr_col = HE.decrypt(cipher_col_msr)[:data_size[1]]
-
-        return decrypted_msr, decrypted_msr_row, decrypted_msr_col
-
-
-
+    return dec_msr, dec_row_msr, dec_col_msr
 
 
 
