@@ -1,8 +1,8 @@
 # SecBic-CCA
 
-**SecBic-CCA**: **Sec**ured **Bic**lusterings - **C**heng and **C**hurch **A**lgorithm: privacy-preserving gene expression data analysis by biclustering algorithm -- Cheng and Church algorithm -- over gene expression data (i.e., yeast cell cycle) with Homomorphic Encryption operations such as sum, or matrix multiplication in Python under the MIT license.
+**SecBic-CCA**: **Sec**ured **Bic**lusterings - **C**heng and **C**hurch **A**lgorithm (Phase 1): privacy-preserving gene expression data analysis by biclustering algorithm -- Cheng and Church algorithm -- over gene expression data (i.e., yeast cell cycle) with Homomorphic Encryption operations such as sum, or matrix multiplication in Python under the MIT license.
 
-We apply [Pyfhel](https://pyfhel.readthedocs.io/en/latest/) as a python wrapper for the Microsoft SEAL library. 
+We apply [Pyfhel](https://pyfhel.readthedocs.io/en/latest/) as a python wrapper for the Microsoft SEAL library and [biclustlib](https://github.com/padilha/biclustlib), a library for biclustering algorithms.   
 
 ## Installation
 First you need to ensure that all packages have been installed.
@@ -72,7 +72,7 @@ missing = np.where(data < 0.0)
 data[missing] = np.random.randint(low=0, high=800, size=len(missing[0]))
 
 # creating an instance of the ChengChurchAlgorithm class and running with the parameters
-cca = ChengChurchAlgorithm(num_biclusters=5, msr_threshold=300.0, multiple_node_deletion_threshold=1.2)
+cca = ChengChurchAlgorithm(num_biclusters=5, msr_threshold=996.0, multiple_node_deletion_threshold=1.2)
 biclustering = cca.run(data)
 print(biclustering)
 
