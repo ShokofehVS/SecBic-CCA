@@ -53,7 +53,7 @@ To measure the similarity of encrypted biclusters with non-encrypted version, we
 
 To run the sample implementation of Cheng and Church algorithm:
 
-	   > python3 SecBiclib/scripts/secured_cheng_church_yeast.py
+	   > python3 cheng_church_yeast.py
 
 ```python
 
@@ -84,7 +84,7 @@ print("Time Performance in Original Algorithm: ", round(m1 - m0, 5), "Seconds")
 
 To run the sample implementation of Secured Cheng and Church algorithm:
 
-	   > python3 SecBiclib/scripts/secured_cheng_church_yeast.py
+	   > python3 secured_cheng_church_yeast.py
 
 ```python
 import time
@@ -114,7 +114,7 @@ print("Time Performance in Calculating Homomorphically: ", round(m1 - m0, 5), "S
 
 To run the sample implementation of external evaluation measure (i.e., CE) on original and encrypted one:
 
-	   > python3 SecBiclib/scripts/evaluation.py
+	   > python3 evaluation.py
 
 
 ```python
