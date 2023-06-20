@@ -1,0 +1,19 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+*~
+*.pyc
+*.bak
+
+# Executables
+**_x
+
+# build
+**/build
+**.eggs
+**.egg-info
+**/dist
+**/venv
+
+# Makefiles
+**/Makefile

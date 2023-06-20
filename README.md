@@ -1,8 +1,8 @@
 # SecBic-CCA
 
-**SecBic-CCA**: **Sec**ured **Bic**lusterings - **C**heng and **C**hurch **A**lgorithm: privacy-preserving gene expression data analysis by biclustering algorithm -- Cheng and Church algorithm -- over gene expression data (i.e., yeast cell cycle) with Homomorphic Encryption operations such as sum, or matrix multiplication in Python under the MIT license.
+**SecBic-CCA**: **Sec**ured **Bic**lusterings - **C**heng and **C**hurch **A**lgorithm (Phase 1): privacy-preserving gene expression data analysis by biclustering algorithm -- Cheng and Church algorithm -- over gene expression data (i.e., yeast cell cycle) with Homomorphic Encryption operations such as sum, or matrix multiplication in Python under the MIT license.
 
-We apply [Pyfhel](https://pyfhel.readthedocs.io/en/latest/) as a python wrapper for the Microsoft SEAL library. 
+We apply [Pyfhel](https://pyfhel.readthedocs.io/en/latest/) as a python wrapper for the Microsoft SEAL library and [biclustlib](https://github.com/padilha/biclustlib), a library for biclustering algorithms.   
 
 ## Installation
 First you need to ensure that all packages have been installed.
@@ -53,7 +53,7 @@ To measure the similarity of encrypted biclusters with non-encrypted version, we
 
 To run the sample implementation of Cheng and Church algorithm:
 
-	   > python3 SecBiclib/scripts/secured_cheng_church_yeast.py
+	   > python3 SecBiclib/scripts/cheng_church_yeast.py
 
 ```python
 
@@ -72,19 +72,19 @@ missing = np.where(data < 0.0)
 data[missing] = np.random.randint(low=0, high=800, size=len(missing[0]))
 
 # creating an instance of the ChengChurchAlgorithm class and running with the parameters
-cca = ChengChurchAlgorithm(num_biclusters=5, msr_threshold=300.0, multiple_node_deletion_threshold=1.2)
+cca = ChengChurchAlgorithm(num_biclusters=5, msr_threshold=996.0, multiple_node_deletion_threshold=1.2)
 biclustering = cca.run(data)
 print(biclustering)
 
 m1 = time.perf_counter()
 print("Time Performance in Original Algorithm: ", round(m1 - m0, 5), "Seconds")
 ```
+
 ## Example of Secured Cheng and Church Algorithm (SeCCA)
 
 To run the sample implementation of Secured Cheng and Church algorithm:
 
 	   > python3 SecBiclib/scripts/secured_cheng_church_yeast.py
-
 
 ```python
 import time
@@ -102,10 +102,42 @@ missing = np.where(data < 0.0)
 data[missing] = np.random.randint(low=0, high=800, size=len(missing[0]))
 
 # creating an instance of the SecuredChengChurchAlgorithm class and running with the parameters
-secca = SecuredChengChurchAlgorithm(num_biclusters=5, msr_threshold=300.0, multiple_node_deletion_threshold=1.2)
+secca = SecuredChengChurchAlgorithm(num_biclusters=5, msr_threshold=996.0, multiple_node_deletion_threshold=1.2)
 biclustering = secca.run(data)
 print(biclustering)
 
 m1 = time.perf_counter()
 print("Time Performance in Calculating Homomorphically: ", round(m1 - m0, 5), "Seconds")
+```
+
+## Example of CE Evaluation 
+
+To run the sample implementation of external evaluation measure (i.e., CE) on original and encrypted one:
+
+	   > python3 SecBiclib/scripts/evaluation.py
+
+
+```python
+from SecBiclib.algorithms import ChengChurchAlgorithm
+from SecBiclib.algorithms import SecuredChengChurchAlgorithm
+from SecBiclib.evaluation import clustering_error
+from SecBiclib.datasets import load_yeast_tavazoie
+
+# load yeast data used in the original Cheng and Church's paper
+data = load_yeast_tavazoie().values
+num_rows, num_cols = data.shape
+
+
+# creating an instance of the ChengChurchAlgorithm, SecuredChengChurchAlgorithm classes
+# and running with the parameters of the original study
+cca = ChengChurchAlgorithm(num_biclusters=5, msr_threshold=996.0, multiple_node_deletion_threshold=1.2)
+secca = SecuredChengChurchAlgorithm(num_biclusters=5, msr_threshold=966.0, multiple_node_deletion_threshold=1.2)
+biclustering_ref = cca.run(data)
+biclustering_pre = secca.run(data)
+
+# creating an instance of the clustering error class
+# and running with reference and predicted algorithms
+ce_eval = round(clustering_error(biclustering_pre, biclustering_ref, num_rows, num_cols),5)
+
+print(ce_eval)
 ```
