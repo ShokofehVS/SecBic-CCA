@@ -2,7 +2,7 @@ import itertools
 import math
 import Pyfhel
 import numpy as np
-import optencryptedmsr
+from SecBiclib.algorithms import optencryptedmsr
 import inspect
 src = inspect.getsource(Pyfhel)
 

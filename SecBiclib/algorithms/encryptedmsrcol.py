@@ -3,7 +3,7 @@ import math
 import Pyfhel
 import numpy as np
 import inspect
-import optencryptedmsrcol
+from SecBiclib.algorithms import optencryptedmsrcol
 src = inspect.getsource(Pyfhel)
 
 

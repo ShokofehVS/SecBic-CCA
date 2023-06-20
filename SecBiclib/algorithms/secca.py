@@ -6,13 +6,14 @@
     This file is part of SecBic-CCA.
 
 """
-import optencryptedmsrow
-import encryptedmsr, encryptedmsrow, encryptedmsrcol
-from _base import BaseBiclusteringAlgorithm
-from models import Bicluster, Biclustering
+from SecBiclib.algorithms import optencryptedmsrow
+from SecBiclib.algorithms import encryptedmsr, encryptedmsrow, encryptedmsrcol
+from SecBiclib.algorithms._base import BaseBiclusteringAlgorithm
+from SecBiclib.models import Bicluster, Biclustering
 from sklearn.utils.validation import check_array
 from Pyfhel import Pyfhel
 import numpy as np
+
 
 
 class SecuredChengChurchAlgorithm(BaseBiclusteringAlgorithm):
