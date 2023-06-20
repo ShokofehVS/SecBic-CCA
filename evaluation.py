@@ -10,8 +10,8 @@ num_rows, num_cols = data.shape
 
 # creating an instance of the ChengChurchAlgorithm, SecuredChengChurchAlgorithm classes
 # and running with the parameters of the original study
-cca = ChengChurchAlgorithm(num_biclusters=5, msr_threshold=300.0, multiple_node_deletion_threshold=1.2)
-secca = SecuredChengChurchAlgorithm(num_biclusters=5, msr_threshold=300.0, multiple_node_deletion_threshold=1.2)
+cca = ChengChurchAlgorithm(num_biclusters=5, msr_threshold=966.0, multiple_node_deletion_threshold=1.2)
+secca = SecuredChengChurchAlgorithm(num_biclusters=5, msr_threshold=966.0, multiple_node_deletion_threshold=1.2)
 biclustering_ref = cca.run(data)
 biclustering_pre = secca.run(data)
 
