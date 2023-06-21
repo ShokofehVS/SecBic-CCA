@@ -1,6 +1,6 @@
 # SecBic-CCA
 
-**SecBic-CCA**: **Sec**ured **Bic**lusterings - **C**heng and **C**hurch **A**lgorithm (Phase 1): privacy-preserving gene expression data analysis by biclustering algorithm -- Cheng and Church algorithm -- over gene expression data (i.e., yeast cell cycle) with Homomorphic Encryption operations such as sum, or matrix multiplication in Python under the MIT license.
+**SecBic-CCA**: **Sec**ured **Bic**lusterings - **C**heng and **C**hurch **A**lgorithm: privacy-preserving gene expression data analysis by biclustering algorithm -- Cheng and Church algorithm -- over gene expression data (i.e., yeast cell cycle) with Homomorphic Encryption operations such as sum, or matrix multiplication in Python under the MIT license.
 
 We apply [Pyfhel](https://pyfhel.readthedocs.io/en/latest/) as a python wrapper for the Microsoft SEAL library and [biclustlib](https://github.com/padilha/biclustlib), a library for biclustering algorithms.   
 
